@@ -11,101 +11,74 @@ import SwiftData
 struct JournalEditorView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isTextFocused: Bool
 
     var entry: JournalEntry?
 
     @State private var content: String = ""
     @State private var selectedState: NervousSystemState = .ventral
-    @State private var intensity: Double = 5
-    @State private var triggerText: String = ""
     @State private var triggers: [String] = []
-    @State private var bodyLocationText: String = ""
     @State private var bodyLocations: [String] = []
 
     var isEditing: Bool { entry != nil }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("How are you feeling?") {
-                    MoodSelectorView(selectedState: $selectedState)
+            VStack(spacing: 0) {
+                // Main writing area
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Date header
+                        Text(Date().formatted(date: .complete, time: .shortened))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                            .padding(.top, 8)
 
-                    VStack(alignment: .leading) {
-                        Text("Intensity: \(Int(intensity))")
-                            .font(.subheadline)
-                        Slider(value: $intensity, in: 1...10, step: 1)
-                            .tint(selectedState.color)
+                        // Text editor
+                        TextEditor(text: $content)
+                            .font(.body)
+                            .scrollContentBackground(.hidden)
+                            .focused($isTextFocused)
+                            .frame(minHeight: 300)
+                            .padding(.horizontal, 12)
+
+                        Spacer(minLength: 100)
                     }
                 }
 
-                Section("What's on your mind?") {
-                    TextEditor(text: $content)
-                        .frame(minHeight: 150)
-                }
+                Divider()
 
-                Section("Triggers (optional)") {
-                    HStack {
-                        TextField("Add a trigger", text: $triggerText)
-                        Button("Add") {
-                            addTrigger()
-                        }
-                        .disabled(triggerText.isEmpty)
-                    }
-
-                    if !triggers.isEmpty {
-                        FlowLayout(spacing: 8) {
-                            ForEach(triggers, id: \.self) { trigger in
-                                HStack(spacing: 4) {
-                                    Text(trigger)
-                                    Button {
-                                        triggers.removeAll { $0 == trigger }
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(.secondary)
+                // Bottom bar with state pills
+                VStack(spacing: 12) {
+                    // State selector pills
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(NervousSystemState.allCases) { state in
+                                StatePillButton(
+                                    state: state,
+                                    isSelected: selectedState == state
+                                ) {
+                                    HapticService.selection()
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        selectedState = state
                                     }
                                 }
-                                .font(.caption)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.secondary.opacity(0.2))
-                                .clipShape(Capsule())
                             }
                         }
-                    }
-                }
-
-                Section("Body sensations (optional)") {
-                    HStack {
-                        TextField("Where do you feel it?", text: $bodyLocationText)
-                        Button("Add") {
-                            addBodyLocation()
-                        }
-                        .disabled(bodyLocationText.isEmpty)
+                        .padding(.horizontal)
                     }
 
-                    if !bodyLocations.isEmpty {
-                        FlowLayout(spacing: 8) {
-                            ForEach(bodyLocations, id: \.self) { location in
-                                HStack(spacing: 4) {
-                                    Text(location)
-                                    Button {
-                                        bodyLocations.removeAll { $0 == location }
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                .font(.caption)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.2))
-                                .clipShape(Capsule())
-                            }
-                        }
-                    }
+                    // Helper text
+                    Text("How are you feeling?")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.vertical, 12)
+                .background(Color(.systemBackground))
             }
-            .navigationTitle(isEditing ? "Edit Entry" : "New Entry")
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(isEditing ? "Edit Note" : "New Note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -117,50 +90,42 @@ struct JournalEditorView: View {
                     Button("Save") {
                         saveEntry()
                     }
-                    .disabled(content.isEmpty)
+                    .fontWeight(.semibold)
+                    .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onAppear {
                 if let entry {
                     content = entry.content
                     selectedState = entry.state
-                    intensity = Double(entry.stateIntensity)
                     triggers = entry.triggers
                     bodyLocations = entry.bodyLocations
+                } else {
+                    // Auto-focus on new entries
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        isTextFocused = true
+                    }
                 }
             }
         }
     }
 
-    private func addTrigger() {
-        let trimmed = triggerText.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty && !triggers.contains(trimmed) {
-            triggers.append(trimmed)
-            triggerText = ""
-        }
-    }
-
-    private func addBodyLocation() {
-        let trimmed = bodyLocationText.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty && !bodyLocations.contains(trimmed) {
-            bodyLocations.append(trimmed)
-            bodyLocationText = ""
-        }
-    }
-
     private func saveEntry() {
+        let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedContent.isEmpty else { return }
+
         if let entry {
-            entry.content = content
+            entry.content = trimmedContent
             entry.state = selectedState
-            entry.stateIntensity = Int(intensity)
+            entry.stateIntensity = 5 // Default intensity
             entry.triggers = triggers
             entry.bodyLocations = bodyLocations
             entry.lastModified = Date()
         } else {
             let newEntry = JournalEntry(
-                content: content,
+                content: trimmedContent,
                 nervousSystemState: selectedState,
-                stateIntensity: Int(intensity),
+                stateIntensity: 5,
                 triggers: triggers,
                 bodyLocations: bodyLocations
             )
@@ -168,6 +133,37 @@ struct JournalEditorView: View {
         }
         HapticService.success()
         dismiss()
+    }
+}
+
+// MARK: - State Pill Button
+
+struct StatePillButton: View {
+    let state: NervousSystemState
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: state.systemImage)
+                    .font(.subheadline)
+                Text(state.displayName)
+                    .font(.subheadline)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(isSelected ? state.color : Color(.secondarySystemBackground))
+            .foregroundStyle(isSelected ? .white : state.color)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(state.color.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
 
