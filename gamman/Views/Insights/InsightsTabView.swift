@@ -36,7 +36,7 @@ struct InsightsTabView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Segmented control
+                // Segmented control at top
                 Picker("View", selection: $selectedView) {
                     Text("Insights").tag(0)
                     Text("Patterns").tag(1)
@@ -44,11 +44,13 @@ struct InsightsTabView: View {
                 .pickerStyle(.segmented)
                 .padding()
 
-                // Content
+                // Content fills remaining space
                 if selectedView == 0 {
                     insightsListView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     patternsView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .navigationTitle("Insights")
