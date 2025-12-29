@@ -1,0 +1,39 @@
+{
+    "id": "polyvagal-basics",
+    "title": "Introduction to Polyvagal Theory",
+    "subtitle": "Understanding your nervous system's three states",
+    "category": "basics",
+    "estimatedMinutes": 10,
+    "sections": [
+        {
+            "heading": "What is Polyvagal Theory?",
+            "content": "Developed by Dr. Stephen Porges, Polyvagal Theory explains how our autonomic nervous system responds to safety and danger. It describes three distinct states that our nervous system can occupy, each with different feelings and behaviors.\n\nThe word 'polyvagal' refers to the multiple branches of the vagus nerve - the longest nerve in your body, running from your brainstem through your face, throat, heart, and gut. This nerve plays a crucial role in how you respond to the world around you.",
+            "imageSystemName": "brain.head.profile",
+            "practicePrompt": null
+        },
+        {
+            "heading": "The Ventral Vagal State",
+            "content": "When we feel safe, our ventral vagal system is active. This is often called the 'social engagement' system. In this state:\n\n• Your heart rate is steady and calm\n• Your breathing is relaxed and deep\n• You can think clearly and creatively\n• You're open to connection with others\n• You feel present and grounded\n\nThis is our optimal state for healing, growth, and connection.",
+            "imageSystemName": "heart.fill",
+            "practicePrompt": "Think of a recent moment when you felt truly safe and connected. Where were you? Who were you with? What did that feel like in your body?"
+        },
+        {
+            "heading": "The Sympathetic State",
+            "content": "When we perceive threat, our sympathetic nervous system activates. This is the 'fight or flight' response. In this state:\n\n• Your heart races and breathing quickens\n• Your muscles tense, preparing for action\n• You may feel anxious, irritable, or restless\n• Your thinking becomes more narrow and reactive\n• You might feel the urge to escape or confront\n\nThis response evolved to protect us from danger, but can be triggered by modern stressors too.",
+            "imageSystemName": "bolt.fill",
+            "practicePrompt": "Recall a time when you felt activated or stressed. Where did you notice tension in your body? How did your thinking change?"
+        },
+        {
+            "heading": "The Dorsal Vagal State",
+            "content": "When threat feels overwhelming and we can't fight or flee, we may shift into dorsal vagal shutdown. This is the 'freeze' response. In this state:\n\n• You may feel numb or disconnected\n• Energy levels drop significantly\n• You might feel foggy or dissociated\n• It can be hard to speak or move\n• Time may feel distorted\n\nThis is the body's last-resort protection mechanism, conserving energy when other options seem unavailable.",
+            "imageSystemName": "snowflake",
+            "practicePrompt": "Have you experienced moments of shutdown or disconnection? How did that manifest for you? There's no judgment - this is a natural protective response."
+        },
+        {
+            "heading": "Moving Between States",
+            "content": "We naturally move between these states throughout the day. The goal isn't to always be in ventral vagal, but to build flexibility - the ability to recognize our state and have tools to shift when needed.\n\nKey insights:\n• All three states serve protective functions\n• We can learn to notice state shifts as they happen\n• Small, consistent practices can increase nervous system flexibility\n• Co-regulation with safe people helps us return to ventral",
+            "imageSystemName": "arrow.triangle.2.circlepath",
+            "practicePrompt": "Over the next day, notice when you shift between states. What triggers these shifts? Can you name the state you're in right now?"
+        }
+    ]
+}

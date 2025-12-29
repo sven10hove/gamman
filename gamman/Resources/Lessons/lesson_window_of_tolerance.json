@@ -1,0 +1,45 @@
+{
+    "id": "window-of-tolerance",
+    "title": "The Window of Tolerance",
+    "subtitle": "Finding your optimal zone for healing and growth",
+    "category": "understanding",
+    "estimatedMinutes": 10,
+    "sections": [
+        {
+            "heading": "What is the Window of Tolerance?",
+            "content": "Developed by Dr. Dan Siegel, the Window of Tolerance describes the zone where you can experience and integrate emotions without becoming overwhelmed or shutting down.\n\nWithin your window:\n• You can think clearly\n• You can feel emotions without being flooded\n• You can connect with others\n• You can handle normal life stressors\n\nThis is your ventral vagal zone - where healing and growth happen.",
+            "imageSystemName": "rectangle.compress.vertical",
+            "practicePrompt": null
+        },
+        {
+            "heading": "Above the Window: Hyperarousal",
+            "content": "When pushed above your window, you enter hyperarousal (sympathetic activation):\n\n• Anxiety or panic\n• Racing thoughts\n• Feeling overwhelmed\n• Irritability or rage\n• Difficulty sleeping\n• Hypervigilance\n\nYou're in fight/flight mode - too much energy, too little grounding.",
+            "imageSystemName": "arrow.up.circle.fill",
+            "practicePrompt": "What pushes you into hyperarousal? What are your early warning signs that you're leaving your window upward?"
+        },
+        {
+            "heading": "Below the Window: Hypoarousal",
+            "content": "When pushed below your window, you enter hypoarousal (dorsal vagal shutdown):\n\n• Numbness or emptiness\n• Disconnection from body\n• Depression or flatness\n• Exhaustion or collapse\n• Brain fog\n• Feeling frozen\n\nYou're in freeze mode - too little energy, too much shutdown.",
+            "imageSystemName": "arrow.down.circle.fill",
+            "practicePrompt": "What pushes you into hypoarousal? How do you know when you're shutting down?"
+        },
+        {
+            "heading": "Your Window Can Change",
+            "content": "Your window of tolerance isn't fixed. It can:\n\n• Narrow when you're stressed, tired, or triggered\n• Expand with safety, rest, and support\n• Shrink after trauma or prolonged stress\n• Grow through healing work and practice\n\nOn hard days, be gentle with yourself - your window may be smaller than usual.",
+            "imageSystemName": "arrow.left.and.right",
+            "practicePrompt": "Notice how your window changes throughout the day. What makes it smaller? What helps it expand?"
+        },
+        {
+            "heading": "Expanding Your Window",
+            "content": "You can gradually widen your window of tolerance through:\n\n• Titration: Approaching difficult things in small doses\n• Pendulation: Moving between activation and calm\n• Resourcing: Building up positive experiences\n• Co-regulation: Being with safe people\n• Grounding: Staying connected to your body\n\nThe goal isn't to never leave your window, but to recognize when you have and know how to return.",
+            "imageSystemName": "arrow.up.left.and.arrow.down.right",
+            "practicePrompt": "What resources help you return to your window? Make a list of things that help you feel grounded and safe."
+        },
+        {
+            "heading": "Working at the Edges",
+            "content": "Growth happens at the edges of your window - gently stretching into discomfort while staying regulated. This is different from being pushed out.\n\nSafe stretching looks like:\n• Feeling challenged but not overwhelmed\n• Staying connected to your body\n• Having support available\n• Being able to pause when needed\n\nWith practice, what once pushed you out of your window becomes manageable within it.",
+            "imageSystemName": "sparkles",
+            "practicePrompt": "What's one small edge you could work with this week? Something slightly challenging but not overwhelming?"
+        }
+    ]
+}

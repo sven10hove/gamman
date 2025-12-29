@@ -1,0 +1,45 @@
+{
+    "id": "fight-flight-freeze",
+    "title": "Fight, Flight, and Freeze",
+    "subtitle": "Understanding your body's survival responses",
+    "category": "basics",
+    "estimatedMinutes": 12,
+    "sections": [
+        {
+            "heading": "Your Survival System",
+            "content": "Your nervous system is constantly scanning for signs of safety and danger - a process called neuroception. This happens automatically, below conscious awareness.\n\nWhen your neuroception detects a threat, it triggers one of three survival responses: fight, flight, or freeze. These aren't choices - they're automatic protective mechanisms that evolved over millions of years.",
+            "imageSystemName": "shield.fill",
+            "practicePrompt": null
+        },
+        {
+            "heading": "The Fight Response",
+            "content": "The fight response mobilizes energy to confront a perceived threat. You might experience:\n\n• Jaw clenching or teeth grinding\n• Hands forming fists\n• Heat rising in your chest or face\n• Urge to argue or push back\n• Feeling irritable or easily triggered\n• Wanting to control situations\n\nIn modern life, this might show up as being snappy with loved ones, road rage, or defensive reactions.",
+            "imageSystemName": "flame.fill",
+            "practicePrompt": "When do you notice fight energy in your body? What situations tend to trigger it? How does it feel physically?"
+        },
+        {
+            "heading": "The Flight Response",
+            "content": "The flight response mobilizes energy to escape from danger. Signs include:\n\n• Restless legs or fidgeting\n• Difficulty sitting still\n• Racing thoughts or worry\n• Urge to leave situations\n• Avoiding difficult conversations\n• Overworking or staying busy\n\nIn daily life, this might appear as procrastination, constantly scrolling your phone, or avoiding certain places or people.",
+            "imageSystemName": "figure.run",
+            "practicePrompt": "What do you tend to flee from? Notice if you have any avoidance patterns. What would you be moving toward if you weren't running away?"
+        },
+        {
+            "heading": "The Freeze Response",
+            "content": "The freeze response occurs when fight or flight feel impossible. Your system conserves energy by shutting down. You might notice:\n\n• Feeling stuck or paralyzed\n• Difficulty making decisions\n• Zoning out or dissociating\n• Feeling emotionally numb\n• Wanting to sleep or hide\n• Time passing strangely\n\nThis can look like binge-watching TV, isolating, or feeling unable to start tasks you know you need to do.",
+            "imageSystemName": "snowflake",
+            "practicePrompt": "When have you felt frozen or stuck? What was happening around you? How did you eventually come out of that state?"
+        },
+        {
+            "heading": "Blended States",
+            "content": "Sometimes we experience blended states - combinations of responses happening at once:\n\n• Fight + Flight = Anxiety with anger\n• Flight + Freeze = Anxious depression\n• Fight + Freeze = Explosive then shutdown\n\nThese blended states can feel particularly confusing because we're pulled in multiple directions at once.",
+            "imageSystemName": "circle.hexagongrid.fill",
+            "practicePrompt": "Have you noticed experiencing mixed states? What does that feel like for you?"
+        },
+        {
+            "heading": "Working With Your Responses",
+            "content": "These responses aren't weaknesses - they're your nervous system trying to protect you. The key is learning to:\n\n1. Notice when you're in a survival state\n2. Recognize it as your body's attempt to help\n3. Use gentle practices to signal safety\n4. Build capacity to stay present with discomfort\n\nWith practice, you can develop more flexibility in how you respond to stress.",
+            "imageSystemName": "hand.raised.fill",
+            "practicePrompt": "What's one small thing you could do today when you notice yourself in a survival state? Something gentle that helps you feel safe."
+        }
+    ]
+}

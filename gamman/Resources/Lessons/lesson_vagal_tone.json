@@ -1,0 +1,39 @@
+{
+    "id": "vagal-tone",
+    "title": "Understanding Vagal Tone",
+    "subtitle": "Building nervous system resilience",
+    "category": "regulation",
+    "estimatedMinutes": 10,
+    "sections": [
+        {
+            "heading": "What is Vagal Tone?",
+            "content": "Vagal tone refers to the activity level of your vagus nerve - think of it as your nervous system's 'fitness level.' Higher vagal tone means:\n\n• Better ability to calm down after stress\n• Easier access to the ventral vagal state\n• More emotional regulation capacity\n• Stronger connection between mind and body\n\nLike physical fitness, vagal tone can be improved with consistent practice.",
+            "imageSystemName": "waveform.path.ecg",
+            "practicePrompt": null
+        },
+        {
+            "heading": "Signs of Healthy Vagal Tone",
+            "content": "People with good vagal tone tend to experience:\n\n• Quicker recovery from stress\n• Better sleep quality\n• Easier digestion\n• Clearer thinking under pressure\n• More stable mood\n• Stronger immune function\n• Better social connections\n\nYou might notice that on 'good days,' several of these come together - that's your vagal tone at work.",
+            "imageSystemName": "heart.text.square.fill",
+            "practicePrompt": "How would you rate your current ability to bounce back from stress? What does recovery look like for you?"
+        },
+        {
+            "heading": "Measuring Vagal Tone",
+            "content": "Heart Rate Variability (HRV) is the primary way to measure vagal tone. HRV measures the variation in time between heartbeats.\n\n• Higher HRV = Higher vagal tone = More resilience\n• Lower HRV = Lower vagal tone = Less flexibility\n\nMany fitness trackers and apps can measure your HRV. It's a useful metric to track over time, though day-to-day fluctuations are normal.",
+            "imageSystemName": "chart.xyaxis.line",
+            "practicePrompt": "If you have access to HRV tracking, notice what affects your readings. Sleep, exercise, stress, and connection all play roles."
+        },
+        {
+            "heading": "Building Vagal Tone",
+            "content": "You can strengthen vagal tone through consistent practices:\n\n• Slow, deep breathing (especially longer exhales)\n• Cold water on face or cold showers\n• Singing, humming, or gargling\n• Social connection and laughter\n• Gentle movement like yoga or tai chi\n• Meditation and mindfulness\n• Quality sleep\n\nThe key is consistency - small daily practices work better than occasional intense efforts.",
+            "imageSystemName": "figure.mind.and.body",
+            "practicePrompt": "Which of these practices appeals to you? Choose one to try this week - even just a few minutes daily can make a difference."
+        },
+        {
+            "heading": "The Breath-Vagus Connection",
+            "content": "Your breath is the most direct way to influence your vagus nerve. Here's why:\n\n• When you inhale, your heart rate slightly increases\n• When you exhale, your vagus nerve slows your heart\n• Longer exhales = More vagal activation = More calm\n\nTry this: Breathe in for 4 counts, out for 6-8 counts. Just a few breaths can start to shift your state.",
+            "imageSystemName": "lungs.fill",
+            "practicePrompt": "Practice the extended exhale breathing right now. Inhale for 4, exhale for 6-8. Do this for 5 breaths and notice how you feel."
+        }
+    ]
+}
