@@ -14,6 +14,7 @@ struct gammanApp: App {
         let schema = Schema([
             JournalEntry.self,
             Lesson.self,
+            LessonSection.self,
             UserInsight.self,
             UserSettings.self,
         ])

@@ -52,7 +52,7 @@ struct LearnTabView: View {
 
                             LazyVStack(spacing: 12) {
                                 ForEach(customLessons) { lesson in
-                                    NavigationLink(destination: LessonDetailView(lesson: lesson)) {
+                                    NavigationLink(destination: LiveLessonDetailView(lesson: lesson)) {
                                         LessonCard(lesson: lesson)
                                     }
                                     .buttonStyle(.plain)
@@ -85,7 +85,7 @@ struct LearnTabView: View {
                 }
             }
             .sheet(isPresented: $showingCustomLesson) {
-                CustomLessonView()
+                LessonGenerationView()
             }
         }
     }
@@ -129,7 +129,18 @@ struct LessonCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    if !lesson.isPrebuilt {
+                    if lesson.isGenerating {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                            Text("Generating...")
+                        }
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.2))
+                        .clipShape(Capsule())
+                    } else if !lesson.isPrebuilt {
                         Text("AI Generated")
                             .font(.caption2)
                             .padding(.horizontal, 6)

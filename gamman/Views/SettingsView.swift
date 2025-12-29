@@ -16,7 +16,11 @@ struct SettingsView: View {
     @Query private var lessons: [Lesson]
 
     @State private var apiKey: String = ""
+    @State private var exaAPIKey: String = ""
+    @State private var openAIAPIKey: String = ""
     @State private var showingAPIKey = false
+    @State private var showingExaKey = false
+    @State private var showingOpenAIKey = false
     @State private var apiKeySaved = false
     @State private var showingResetConfirmation = false
 
@@ -93,9 +97,125 @@ struct SettingsView: View {
                         }
                     }
                 } header: {
-                    Text("Claude AI")
+                    Text("Claude AI (Required)")
                 } footer: {
-                    Text("Your API key is stored securely in the iOS Keychain and never leaves your device.")
+                    Text("Required for lesson generation and insights.")
+                }
+
+                // Exa API Key Section
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: KeychainService.hasExaAPIKey ? "checkmark.shield.fill" : "link")
+                                .foregroundStyle(KeychainService.hasExaAPIKey ? .green : .purple)
+                            Text(KeychainService.hasExaAPIKey ? "Exa API Configured" : "Add Exa API Key")
+                                .font(.headline)
+                        }
+
+                        if KeychainService.hasExaAPIKey {
+                            Text("Exa is used to find relevant learning resources.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Button(role: .destructive) {
+                                KeychainService.deleteExaAPIKey()
+                                exaAPIKey = ""
+                            } label: {
+                                Label("Remove Exa Key", systemImage: "trash")
+                            }
+                        } else {
+                            HStack {
+                                if showingExaKey {
+                                    TextField("exa-...", text: $exaAPIKey)
+                                        .autocorrectionDisabled()
+                                        .textInputAutocapitalization(.never)
+                                } else {
+                                    SecureField("exa-...", text: $exaAPIKey)
+                                }
+
+                                Button {
+                                    showingExaKey.toggle()
+                                } label: {
+                                    Image(systemName: showingExaKey ? "eye.slash" : "eye")
+                                }
+                            }
+
+                            if !exaAPIKey.isEmpty {
+                                Button {
+                                    KeychainService.saveExaAPIKey(exaAPIKey)
+                                } label: {
+                                    Label("Save Exa Key", systemImage: "checkmark.circle")
+                                }
+                            }
+
+                            Link(destination: URL(string: "https://exa.ai")!) {
+                                Label("Get API key from Exa", systemImage: "arrow.up.right.square")
+                            }
+                            .font(.caption)
+                        }
+                    }
+                } header: {
+                    Text("Exa (Optional)")
+                } footer: {
+                    Text("Adds curated external resources to lessons.")
+                }
+
+                // OpenAI API Key Section
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: KeychainService.hasOpenAIAPIKey ? "checkmark.shield.fill" : "photo.artframe")
+                                .foregroundStyle(KeychainService.hasOpenAIAPIKey ? .green : .pink)
+                            Text(KeychainService.hasOpenAIAPIKey ? "OpenAI API Configured" : "Add OpenAI API Key")
+                                .font(.headline)
+                        }
+
+                        if KeychainService.hasOpenAIAPIKey {
+                            Text("OpenAI is used to generate lesson illustrations with DALL-E.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Button(role: .destructive) {
+                                KeychainService.deleteOpenAIAPIKey()
+                                openAIAPIKey = ""
+                            } label: {
+                                Label("Remove OpenAI Key", systemImage: "trash")
+                            }
+                        } else {
+                            HStack {
+                                if showingOpenAIKey {
+                                    TextField("sk-...", text: $openAIAPIKey)
+                                        .autocorrectionDisabled()
+                                        .textInputAutocapitalization(.never)
+                                } else {
+                                    SecureField("sk-...", text: $openAIAPIKey)
+                                }
+
+                                Button {
+                                    showingOpenAIKey.toggle()
+                                } label: {
+                                    Image(systemName: showingOpenAIKey ? "eye.slash" : "eye")
+                                }
+                            }
+
+                            if !openAIAPIKey.isEmpty {
+                                Button {
+                                    KeychainService.saveOpenAIAPIKey(openAIAPIKey)
+                                } label: {
+                                    Label("Save OpenAI Key", systemImage: "checkmark.circle")
+                                }
+                            }
+
+                            Link(destination: URL(string: "https://platform.openai.com/api-keys")!) {
+                                Label("Get API key from OpenAI", systemImage: "arrow.up.right.square")
+                            }
+                            .font(.caption)
+                        }
+                    }
+                } header: {
+                    Text("OpenAI (Optional)")
+                } footer: {
+                    Text("Adds AI-generated illustrations to lessons. Falls back to icons if not configured.")
                 }
 
                 Section("Insight Preferences") {

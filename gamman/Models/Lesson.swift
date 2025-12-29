@@ -15,6 +15,14 @@ struct LessonSectionData: Codable, Hashable {
     let practicePrompt: String?
 }
 
+enum LessonGenerationStatus: String, Codable, Sendable {
+    case notStarted
+    case generating
+    case completed
+    case partialFailure
+    case failed
+}
+
 @Model
 final class Lesson {
     var id: UUID
@@ -28,6 +36,14 @@ final class Lesson {
     var completedDate: Date?
     var createdDate: Date
     var userPrompt: String?
+
+    // Multi-agent generation tracking
+    var generationStatus: String
+    var totalSections: Int
+    var completedSections: Int
+    var currentAgentTask: String?
+    var generationStartedAt: Date?
+    var generationCompletedAt: Date?
 
     init(
         title: String,
@@ -49,6 +65,32 @@ final class Lesson {
         self.completedDate = nil
         self.createdDate = Date()
         self.userPrompt = userPrompt
+        self.generationStatus = LessonGenerationStatus.notStarted.rawValue
+        self.totalSections = sections.count
+        self.completedSections = sections.count
+    }
+
+    /// Initializer for multi-agent generated lessons
+    init(
+        title: String,
+        subtitle: String,
+        userPrompt: String,
+        totalSections: Int
+    ) {
+        self.id = UUID()
+        self.title = title
+        self.subtitle = subtitle
+        self.category = "custom"
+        self.sectionsData = Data()
+        self.estimatedMinutes = max(5, totalSections * 3)
+        self.isPrebuilt = false
+        self.isCompleted = false
+        self.createdDate = Date()
+        self.userPrompt = userPrompt
+        self.generationStatus = LessonGenerationStatus.generating.rawValue
+        self.totalSections = totalSections
+        self.completedSections = 0
+        self.generationStartedAt = Date()
     }
 
     var sections: [LessonSectionData] {
@@ -58,5 +100,19 @@ final class Lesson {
         set {
             sectionsData = (try? JSONEncoder().encode(newValue)) ?? Data()
         }
+    }
+
+    var lessonGenerationStatus: LessonGenerationStatus {
+        get { LessonGenerationStatus(rawValue: generationStatus) ?? .notStarted }
+        set { generationStatus = newValue.rawValue }
+    }
+
+    var isGenerating: Bool {
+        lessonGenerationStatus == .generating
+    }
+
+    var generationProgress: Double {
+        guard totalSections > 0 else { return 0 }
+        return Double(completedSections) / Double(totalSections)
     }
 }
