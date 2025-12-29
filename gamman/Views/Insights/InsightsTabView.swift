@@ -198,13 +198,26 @@ struct InsightsTabView: View {
         isGenerating = true
         errorMessage = nil
 
+        // Extract data from entries on MainActor before passing to actor
+        let recentEntries = Array(entries.prefix(15))
+        let summaries = recentEntries.map { entry in
+            JournalEntrySummary(
+                timestamp: entry.timestamp,
+                stateDisplayName: entry.state.displayName,
+                stateIntensity: entry.stateIntensity,
+                content: entry.content,
+                triggers: entry.triggers,
+                bodyLocations: entry.bodyLocations
+            )
+        }
+        let isConnected = networkMonitor.isConnected
+
         Task {
             do {
-                let recentEntries = Array(entries.prefix(15))
-
                 let generatedContent = try await ClaudeAPIService.shared.generateInsight(
-                    from: recentEntries,
-                    apiKey: key
+                    from: summaries,
+                    apiKey: key,
+                    isConnected: isConnected
                 )
 
                 let insight = UserInsight(

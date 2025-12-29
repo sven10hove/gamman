@@ -147,11 +147,14 @@ struct CustomLessonView: View {
         isGenerating = true
         errorMessage = nil
 
+        let isConnected = networkMonitor.isConnected
+
         Task {
             do {
                 let generatedContent = try await ClaudeAPIService.shared.generateLesson(
                     prompt: prompt,
-                    apiKey: key
+                    apiKey: key,
+                    isConnected: isConnected
                 )
 
                 let lesson = Lesson(
