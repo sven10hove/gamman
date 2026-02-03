@@ -9,71 +9,71 @@ import Foundation
 import Security
 
 enum KeychainService {
-    private static let service = "com.gamman.api"
-    private static let claudeKeyAccount = "claude-api-key"
-    private static let exaKeyAccount = "exa-api-key"
-    private static let openaiKeyAccount = "openai-api-key"
+    nonisolated private static let service = "com.gamman.api"
+    nonisolated private static let claudeKeyAccount = "claude-api-key"
+    nonisolated private static let exaKeyAccount = "exa-api-key"
+    nonisolated private static let openaiKeyAccount = "openai-api-key"
 
     // MARK: - Claude API Key
 
-    static func saveAPIKey(_ key: String) -> Bool {
+    nonisolated static func saveAPIKey(_ key: String) -> Bool {
         saveKey(key, account: claudeKeyAccount)
     }
 
-    static func getAPIKey() -> String? {
+    nonisolated static func getAPIKey() -> String? {
         getKey(account: claudeKeyAccount)
     }
 
     @discardableResult
-    static func deleteAPIKey() -> Bool {
+    nonisolated static func deleteAPIKey() -> Bool {
         deleteKey(account: claudeKeyAccount)
     }
 
-    static var hasAPIKey: Bool {
+    nonisolated static var hasAPIKey: Bool {
         getAPIKey() != nil
     }
 
     // MARK: - Exa API Key
 
-    static func saveExaAPIKey(_ key: String) -> Bool {
+    nonisolated static func saveExaAPIKey(_ key: String) -> Bool {
         saveKey(key, account: exaKeyAccount)
     }
 
-    static func getExaAPIKey() -> String? {
+    nonisolated static func getExaAPIKey() -> String? {
         getKey(account: exaKeyAccount)
     }
 
     @discardableResult
-    static func deleteExaAPIKey() -> Bool {
+    nonisolated static func deleteExaAPIKey() -> Bool {
         deleteKey(account: exaKeyAccount)
     }
 
-    static var hasExaAPIKey: Bool {
+    nonisolated static var hasExaAPIKey: Bool {
         getExaAPIKey() != nil
     }
 
     // MARK: - OpenAI API Key
 
-    static func saveOpenAIAPIKey(_ key: String) -> Bool {
+    nonisolated static func saveOpenAIAPIKey(_ key: String) -> Bool {
         saveKey(key, account: openaiKeyAccount)
     }
 
-    static func getOpenAIAPIKey() -> String? {
+    nonisolated static func getOpenAIAPIKey() -> String? {
         getKey(account: openaiKeyAccount)
     }
 
     @discardableResult
-    static func deleteOpenAIAPIKey() -> Bool {
+    nonisolated static func deleteOpenAIAPIKey() -> Bool {
         deleteKey(account: openaiKeyAccount)
     }
 
-    static var hasOpenAIAPIKey: Bool {
+    nonisolated static var hasOpenAIAPIKey: Bool {
         getOpenAIAPIKey() != nil
     }
 
     // MARK: - Generic Helpers
 
-    private static func saveKey(_ key: String, account: String) -> Bool {
+    nonisolated private static func saveKey(_ key: String, account: String) -> Bool {
         deleteKey(account: account)
 
         guard let data = key.data(using: .utf8) else { return false }
@@ -90,7 +90,7 @@ enum KeychainService {
         return status == errSecSuccess
     }
 
-    private static func getKey(account: String) -> String? {
+    nonisolated private static func getKey(account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -112,7 +112,7 @@ enum KeychainService {
     }
 
     @discardableResult
-    private static func deleteKey(account: String) -> Bool {
+    nonisolated private static func deleteKey(account: String) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
