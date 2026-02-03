@@ -7,7 +7,9 @@
 
 import SwiftUI
 import SwiftData
+import SafariServices
 
+@available(iOS 17.0, *)
 struct LiveLessonDetailView: View {
     @Bindable var lesson: Lesson
     @Query private var allSections: [LessonSection]
@@ -29,8 +31,10 @@ struct LiveLessonDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Progress bar
-            progressHeader
+            // Instagram-style progress segments
+            if !sections.isEmpty {
+                progressSegments
+            }
 
             // Section content
             if sections.isEmpty {
@@ -42,8 +46,16 @@ struct LiveLessonDetailView: View {
             } else {
                 TabView(selection: $currentSectionIndex) {
                     ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
-                        LiveSectionView(section: section)
-                            .tag(index)
+                        LiveSectionView(
+                            section: section,
+                            isLastSection: index == sections.count - 1 && !lesson.isGenerating,
+                            onComplete: {
+                                lesson.isCompleted = true
+                                lesson.completedDate = Date()
+                                HapticService.success()
+                            }
+                        )
+                        .tag(index)
                     }
 
                     // "More coming" placeholder
@@ -59,92 +71,43 @@ struct LiveLessonDetailView: View {
                     HapticService.selection()
                 }
             }
-
-            // Navigation bar
-            if !sections.isEmpty {
-                navigationBar
-            }
         }
-        .navigationTitle(lesson.title)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var progressHeader: some View {
-        VStack(spacing: 8) {
-            HStack {
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                // Generating indicator in nav bar
                 if lesson.isGenerating {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                    Text("Generating...")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Section \(currentSectionIndex + 1) of \(sections.count)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if lesson.isGenerating {
-                    Text("\(lesson.completedSections)/\(lesson.totalSections) ready")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-                }
-            }
-
-            ProgressView(
-                value: Double(currentSectionIndex + 1),
-                total: Double(max(sections.count, 1))
-            )
-            .tint(.blue)
-        }
-        .padding()
-        .background(Color(.systemBackground))
-    }
-
-    private var navigationBar: some View {
-        HStack {
-            Button {
-                withAnimation {
-                    currentSectionIndex = max(0, currentSectionIndex - 1)
-                }
-                HapticService.impact(.light)
-            } label: {
-                Label("Previous", systemImage: "chevron.left")
-            }
-            .disabled(currentSectionIndex == 0)
-
-            Spacer()
-
-            if currentSectionIndex == sections.count - 1 && !lesson.isGenerating {
-                Button {
-                    lesson.isCompleted = true
-                    lesson.completedDate = Date()
-                    HapticService.success()
-                } label: {
-                    Label("Complete", systemImage: "checkmark.circle.fill")
-                }
-                .buttonStyle(.borderedProminent)
-            } else {
-                Button {
-                    withAnimation {
-                        currentSectionIndex = min(sections.count - 1, currentSectionIndex + 1)
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                        Text("\(lesson.completedSections)/\(lesson.totalSections)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    HapticService.impact(.light)
-                } label: {
-                    Label("Next", systemImage: "chevron.right")
                 }
-                .disabled(currentSectionIndex >= sections.count - 1)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
+    }
+
+    private var progressSegments: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<sections.count, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(index <= currentSectionIndex ? Color.primary.opacity(0.8) : Color.primary.opacity(0.15))
+                    .frame(height: 2)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 }
 
+@available(iOS 17.0, *)
 struct LiveSectionView: View {
     let section: LessonSection
+    var isLastSection: Bool = false
+    var onComplete: (() -> Void)?
 
     var body: some View {
         ScrollView {
@@ -172,49 +135,67 @@ struct LiveSectionView: View {
                     FactCheckNotesView(notes: notes)
                 }
 
-                Spacer(minLength: 100)
+                // Complete button on last section
+                if isLastSection {
+                    Button {
+                        onComplete?()
+                    } label: {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Mark as Complete")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 8)
+                }
+
+                Spacer(minLength: 60)
             }
             .padding()
         }
     }
 
     private var sectionHeader: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // Image or fallback icon
+        HStack(alignment: .center, spacing: 12) {
+            // Compact icon
             if let imageData = section.imageData,
                let uiImage = UIImage(data: imageData) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             } else if let systemName = section.imageSystemName {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(Color.blue.opacity(0.1))
-                        .frame(width: 80, height: 80)
+                        .frame(width: 40, height: 40)
 
                     Image(systemName: systemName)
-                        .font(.largeTitle)
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(.blue)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(section.heading)
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 20, weight: .semibold))
 
                 if let objective = section.learningObjective {
                     Text(objective)
-                        .font(.caption)
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
         }
     }
 }
 
+@available(iOS 17.0, *)
 struct PracticePromptCard: View {
     let prompt: String
 
@@ -236,91 +217,225 @@ struct PracticePromptCard: View {
     }
 }
 
+@available(iOS 17.0, *)
 struct ResourcesSection: View {
     let resources: [ExternalResource]
+    @State private var selectedURL: URL?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Learn More", systemImage: "link")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 16) {
+            // Header - minimal, Linear style
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
 
-            ForEach(resources) { resource in
-                if let url = URL(string: resource.url) {
-                    Link(destination: url) {
-                        HStack {
-                            Image(systemName: resource.resourceType.systemImage)
-                                .foregroundStyle(.blue)
-                                .frame(width: 24)
+                Text("Resources")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+            }
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(resource.title)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(2)
-
-                                if let snippet = resource.snippet {
-                                    Text(snippet)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                }
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+            // Resources list with subtle border
+            VStack(spacing: 0) {
+                ForEach(Array(resources.enumerated()), id: \.element.id) { index, resource in
+                    if let url = URL(string: resource.url) {
+                        Button {
+                            selectedURL = url
+                            HapticService.selection()
+                        } label: {
+                            ResourceRow(resource: resource)
                         }
-                        .padding()
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .buttonStyle(ResourceButtonStyle())
+
+                        // Divider between items (not after last)
+                        if index < resources.count - 1 {
+                            Divider()
+                                .padding(.leading, 44)
+                        }
                     }
                 }
             }
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(.separator).opacity(0.5), lineWidth: 1)
+            )
         }
-        .padding(.top)
+        .padding(.top, 8)
+        .sheet(item: $selectedURL) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
+        }
     }
 }
 
+// Safari View for in-app browser
+@available(iOS 17.0, *)
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let config = SFSafariViewController.Configuration()
+        config.entersReaderIfAvailable = false
+        config.barCollapsingEnabled = true
+
+        let safari = SFSafariViewController(url: url, configuration: config)
+        safari.preferredControlTintColor = .systemBlue
+        return safari
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+}
+
+// Make URL identifiable for sheet
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
+}
+
+// Individual resource row - clean, minimal
+@available(iOS 17.0, *)
+struct ResourceRow: View {
+    let resource: ExternalResource
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icon container
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(iconBackgroundColor.opacity(0.1))
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: resource.resourceType.systemImage)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(iconBackgroundColor)
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayTitle)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(domainFromURL(resource.url))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            // Arrow
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+
+    var iconBackgroundColor: Color {
+        switch resource.resourceType {
+        case .video: return .red
+        case .research: return .blue
+        case .book: return .orange
+        case .podcast: return .purple
+        case .article: return .green
+        case .other: return .gray
+        }
+    }
+
+    var displayTitle: String {
+        if resource.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Fallback to domain name or resource type
+            let domain = domainFromURL(resource.url)
+            return domain.isEmpty ? resource.resourceType.rawValue.capitalized : domain
+        }
+        return resource.title
+    }
+
+    func domainFromURL(_ urlString: String) -> String {
+        guard let url = URL(string: urlString),
+              let host = url.host else {
+            return urlString
+        }
+        return host.replacingOccurrences(of: "www.", with: "")
+    }
+}
+
+// Custom button style for subtle press feedback
+@available(iOS 17.0, *)
+struct ResourceButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Color(.systemGray5) : Color.clear)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+@available(iOS 17.0, *)
 struct FactCheckNotesView: View {
     let notes: String
     @State private var isExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button {
-                withAnimation {
+            // Header - tappable
+            HStack {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.green)
+
+                Text("Verified Content")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(isExpanded ? "Hide" : "Details")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.green)
+
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.green)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     isExpanded.toggle()
                 }
-            } label: {
-                HStack {
-                    Label("Fact-Check Notes", systemImage: "checkmark.shield")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-
-                    Spacer()
-
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                HapticService.selection()
             }
-            .buttonStyle(.plain)
 
             if isExpanded {
+                Divider()
+                    .padding(.horizontal, 14)
+
                 Text(notes)
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 12)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding()
-        .background(Color.green.opacity(0.1))
+        .background(Color.green.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.green.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
+@available(iOS 17.0, *)
 struct MoreSectionsLoadingView: View {
     let remaining: Int
 

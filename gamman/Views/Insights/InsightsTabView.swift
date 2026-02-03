@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 
+@available(iOS 17.0, *)
 struct InsightsTabView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \UserInsight.generatedDate, order: .reverse) private var insights: [UserInsight]
@@ -20,40 +21,65 @@ struct InsightsTabView: View {
 
     var networkMonitor = NetworkMonitor.shared
 
-    private var apiKey: String? {
-        KeychainService.getAPIKey() ?? settings.first?.apiKey
-    }
-
     private var hasAPIKey: Bool {
-        guard let key = apiKey else { return false }
-        return !key.isEmpty
+        APIAccess.hasClaudeAccess
     }
 
     private var canGenerate: Bool {
         hasAPIKey && networkMonitor.isConnected && entries.count >= 3 && !isGenerating
     }
 
+    // Calculate entries from the past week
+    private var entriesThisWeek: Int {
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return entries.filter { $0.timestamp >= weekAgo }.count
+    }
+
+    // Find the most common state this week
+    private var dominantStateThisWeek: NervousSystemState? {
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let weekEntries = entries.filter { $0.timestamp >= weekAgo }
+        guard !weekEntries.isEmpty else { return nil }
+
+        let stateCounts = Dictionary(grouping: weekEntries, by: { $0.state })
+        return stateCounts.max(by: { $0.value.count < $1.value.count })?.key
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Segmented control at top
-                Picker("View", selection: $selectedView) {
-                    Text("Insights").tag(0)
-                    Text("Patterns").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding()
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Weekly Recap Card at top
+                    WeeklyRecapCard(
+                        entriesThisWeek: entriesThisWeek,
+                        dominantState: dominantStateThisWeek,
+                        onTap: {
+                            HapticService.impact(.light)
+                            selectedView = 1 // Switch to patterns view
+                        }
+                    )
+                    .padding(.horizontal)
 
-                // Content fills remaining space
-                if selectedView == 0 {
-                    insightsListView
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    patternsView
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // Segmented control
+                    Picker("View", selection: $selectedView) {
+                        Text("Insights").tag(0)
+                        Text("Patterns").tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+
+                    // Content
+                    if selectedView == 0 {
+                        insightsListView
+                    } else {
+                        patternsView
+                    }
                 }
+                .padding(.vertical)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Insights")
+            .glassNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -63,7 +89,10 @@ struct InsightsTabView: View {
                         if isGenerating {
                             ProgressView()
                         } else {
-                            Label("Generate", systemImage: "sparkles")
+                            Image(systemName: "sparkles")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(Color.appPurple)
                         }
                     }
                     .disabled(!canGenerate)
@@ -84,21 +113,29 @@ struct InsightsTabView: View {
     private var insightsListView: some View {
         Group {
             if insights.isEmpty {
-                EmptyStateView(
-                    icon: "sparkles",
-                    title: "No Insights Yet",
-                    description: "Keep journaling and tap the sparkle button to generate personalized insights about your nervous system patterns.",
-                    actionTitle: canGenerate ? "Generate First Insight" : nil,
-                    action: canGenerate ? { generateInsight() } : nil
-                )
-            } else {
-                List {
-                    ForEach(insights) { insight in
-                        InsightCardView(insight: insight)
-                    }
-                    .onDelete(perform: deleteInsights)
+                VStack(spacing: 16) {
+                    EmptyStateView(
+                        icon: "sparkles",
+                        title: "No Insights Yet",
+                        description: "Keep journaling and tap the sparkle button to generate personalized insights about your nervous system patterns.",
+                        actionTitle: canGenerate ? "Generate First Insight" : nil,
+                        action: canGenerate ? { generateInsight() } : nil
+                    )
                 }
-                .listStyle(.plain)
+            } else {
+                LazyVStack(spacing: 16) {
+                    ForEach(insights) { insight in
+                        GlassInsightCard(insight: insight)
+                            .padding(.horizontal)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    deleteInsight(insight)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                }
             }
         }
     }
@@ -112,9 +149,11 @@ struct InsightsTabView: View {
                     description: "Start journaling to see your nervous system patterns visualized here."
                 )
             } else {
-                ScrollView {
+                VStack(spacing: 16) {
                     PatternChartView(entries: entries)
                         .padding()
+                        .glassCard(cornerRadius: 16)
+                        .padding(.horizontal)
                 }
             }
         }
@@ -140,7 +179,8 @@ struct InsightsTabView: View {
                 .padding()
                 .background(.red.opacity(0.9))
                 .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .glassCard(cornerRadius: 12, tint: .red)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .onAppear {
                     HapticService.error()
@@ -150,12 +190,11 @@ struct InsightsTabView: View {
             if !hasAPIKey && selectedView == 0 {
                 HStack {
                     Image(systemName: "key.fill")
-                    Text("Add API key in Settings for AI insights")
+                    Text("AI service unavailable")
                 }
                 .font(.caption)
                 .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
+                .glassCard(cornerRadius: 20)
             } else if !networkMonitor.isConnected && selectedView == 0 {
                 HStack {
                     Image(systemName: "wifi.slash")
@@ -163,8 +202,7 @@ struct InsightsTabView: View {
                 }
                 .font(.caption)
                 .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
+                .glassCard(cornerRadius: 20)
             } else if entries.count < 3 && selectedView == 0 {
                 HStack {
                     Image(systemName: "pencil.line")
@@ -172,13 +210,19 @@ struct InsightsTabView: View {
                 }
                 .font(.caption)
                 .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
+                .glassCard(cornerRadius: 20)
             }
         }
         .padding(.horizontal)
         .padding(.bottom, 8)
         .animation(.easeInOut, value: errorMessage)
+    }
+
+    private func deleteInsight(_ insight: UserInsight) {
+        HapticService.impact(.medium)
+        withAnimation {
+            modelContext.delete(insight)
+        }
     }
 
     private func deleteInsights(offsets: IndexSet) {
@@ -190,16 +234,25 @@ struct InsightsTabView: View {
     }
 
     private func generateInsight() {
-        guard let key = apiKey, !key.isEmpty else {
-            errorMessage = "Please add your API key in Settings"
+        print("🔮 Starting insight generation...")
+
+        guard APIAccess.hasClaudeAccess else {
+            errorMessage = "AI service is not configured"
+            print("❌ AI service unavailable")
             return
         }
+
+        print("   - AI access configured: \(APIAccess.hasClaudeAccess)")
+        print("   - Entries count: \(entries.count)")
+        print("   - Network connected: \(networkMonitor.isConnected)")
 
         isGenerating = true
         errorMessage = nil
 
         // Extract data from entries on MainActor before passing to actor
         let recentEntries = Array(entries.prefix(15))
+        print("   - Using \(recentEntries.count) entries for analysis")
+
         let summaries = recentEntries.map { entry in
             JournalEntrySummary(
                 timestamp: entry.timestamp,
@@ -214,11 +267,13 @@ struct InsightsTabView: View {
 
         Task {
             do {
+                print("📡 Calling ClaudeAPIService.generateInsight...")
                 let generatedContent = try await ClaudeAPIService.shared.generateInsight(
                     from: summaries,
-                    apiKey: key,
+                    apiKey: APIAccess.claudeAPIKey ?? "",
                     isConnected: isConnected
                 )
+                print("✅ Insight generated: \(generatedContent.title)")
 
                 let insight = UserInsight(
                     title: generatedContent.title,
@@ -244,11 +299,80 @@ struct InsightsTabView: View {
                     HapticService.success()
                 }
             } catch {
+                print("❌ Insight generation failed: \(error)")
+                print("   Error description: \(error.localizedDescription)")
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                     isGenerating = false
                 }
             }
+        }
+    }
+}
+
+// MARK: - Glass Insight Card
+
+@available(iOS 17.0, *)
+struct GlassInsightCard: View {
+    let insight: UserInsight
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: categoryIcon)
+                    .font(.headline)
+                    .foregroundStyle(categoryColor)
+
+                Text(insight.title)
+                    .font(.headline)
+
+                Spacer()
+
+                Text(insight.generatedDate, style: .relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(insight.content)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(4)
+
+            HStack {
+                Label("\(insight.entriesAnalyzedCount) entries", systemImage: "doc.text")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text(insight.category)
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(categoryColor.opacity(0.15))
+                    .foregroundStyle(categoryColor)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 16)
+    }
+
+    private var categoryIcon: String {
+        switch insight.category.lowercased() {
+        case "pattern recognition": return "waveform.path.ecg"
+        case "trigger analysis": return "exclamationmark.triangle"
+        case "regulation strategies": return "heart.text.square"
+        default: return "sparkles"
+        }
+    }
+
+    private var categoryColor: Color {
+        switch insight.category.lowercased() {
+        case "pattern recognition": return .purple
+        case "trigger analysis": return .orange
+        case "regulation strategies": return .green
+        default: return .blue
         }
     }
 }

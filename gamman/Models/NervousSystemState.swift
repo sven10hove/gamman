@@ -55,4 +55,35 @@ enum NervousSystemState: String, Codable, CaseIterable, Identifiable {
         case .blended: return "circle.hexagongrid.fill"
         }
     }
+
+    var emoji: String {
+        switch self {
+        case .ventral: return "🌿"
+        case .sympathetic: return "⚡"
+        case .dorsalVagal: return "❄️"
+        case .blended: return "🔄"
+        }
+    }
+
+    var gradient: LinearGradient {
+        switch self {
+        case .ventral: return .ventral
+        case .sympathetic: return .sympathetic
+        case .dorsalVagal: return .dorsalVagal
+        case .blended: return .blended
+        }
+    }
+
+    var gradientColors: [Color] {
+        switch self {
+        case .ventral:
+            return [Color(red: 0.2, green: 0.78, blue: 0.35), Color(red: 0.18, green: 0.65, blue: 0.42)]
+        case .sympathetic:
+            return [Color(red: 1.0, green: 0.58, blue: 0.0), Color(red: 1.0, green: 0.27, blue: 0.23)]
+        case .dorsalVagal:
+            return [Color(red: 0.35, green: 0.34, blue: 0.84), Color(red: 0.0, green: 0.48, blue: 1.0)]
+        case .blended:
+            return [Color(red: 0.69, green: 0.32, blue: 0.87), Color(red: 1.0, green: 0.18, blue: 0.33)]
+        }
+    }
 }

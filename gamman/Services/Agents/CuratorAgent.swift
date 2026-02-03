@@ -17,7 +17,7 @@ actor CuratorAgent {
             throw AgentError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             throw AgentError.noAPIKey(agent: "Curator")
         }
 
@@ -52,14 +52,20 @@ actor CuratorAgent {
     }
 
     private func searchExa(query: String, apiKey: String) async throws -> [ExternalResource] {
-        guard let url = URL(string: exaBaseURL) else {
+        guard let url = APIAccess.exaSearchURL(defaultURL: exaBaseURL) else {
             throw AgentError.invalidResponse(agent: "Curator", details: "Invalid URL")
         }
 
+        let usesProxy = APIAccess.usesProxy
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+
+        if usesProxy {
+            APIAccess.applyProxyHeaders(to: &request)
+        } else {
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        }
         request.timeoutInterval = 30
 
         let body: [String: Any] = [
@@ -95,16 +101,21 @@ actor CuratorAgent {
         return try parseExaResponse(data: data)
     }
 
-    private nonisolated func parseExaResponse(data: Data) throws -> [ExternalResource] {
+    private func parseExaResponse(data: Data) throws -> [ExternalResource] {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let results = json["results"] as? [[String: Any]] else {
             return []
         }
 
         return results.compactMap { result -> ExternalResource? in
-            guard let title = result["title"] as? String,
-                  let urlString = result["url"] as? String else {
+            guard let urlString = result["url"] as? String else {
                 return nil
+            }
+
+            // Get title, or extract from URL if empty
+            var title = (result["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if title.isEmpty {
+                title = extractTitleFromURL(urlString)
             }
 
             let snippet = result["text"] as? String
@@ -112,6 +123,7 @@ actor CuratorAgent {
             let resourceType = classifyResource(url: urlString)
 
             return ExternalResource(
+                id: UUID(),
                 title: title,
                 url: urlString,
                 snippet: snippet,
@@ -121,7 +133,37 @@ actor CuratorAgent {
         }
     }
 
-    private nonisolated func classifyResource(url: String) -> ExternalResource.ResourceType {
+    private func extractTitleFromURL(_ urlString: String) -> String {
+        guard let url = URL(string: urlString) else { return "" }
+
+        // Try to get a readable title from the URL path
+        let path = url.path
+        if !path.isEmpty && path != "/" {
+            // Get the last path component and clean it up
+            var title = url.lastPathComponent
+                .replacingOccurrences(of: "-", with: " ")
+                .replacingOccurrences(of: "_", with: " ")
+                .replacingOccurrences(of: ".html", with: "")
+                .replacingOccurrences(of: ".htm", with: "")
+                .replacingOccurrences(of: ".php", with: "")
+
+            // Capitalize words
+            title = title.capitalized
+
+            if !title.isEmpty && title != "/" {
+                return title
+            }
+        }
+
+        // Fallback to domain name
+        if let host = url.host {
+            return host.replacingOccurrences(of: "www.", with: "").capitalized
+        }
+
+        return ""
+    }
+
+    private func classifyResource(url: String) -> ResourceType {
         let lowercased = url.lowercased()
 
         if lowercased.contains("youtube") || lowercased.contains("vimeo") || lowercased.contains("video") {
@@ -144,7 +186,7 @@ actor CuratorAgent {
         return .article
     }
 
-    private nonisolated func deduplicateResources(_ resources: [ExternalResource]) -> [ExternalResource] {
+    private func deduplicateResources(_ resources: [ExternalResource]) -> [ExternalResource] {
         var seen = Set<String>()
         return resources.filter { resource in
             let key = resource.url.lowercased()

@@ -29,22 +29,28 @@ A SwiftUI iOS app for tracking and understanding your nervous system through jou
 - Personalized suggestions for nervous system regulation
 
 ### Settings
-- Secure API key storage (iOS Keychain)
+- Managed AI service status (server-side keys)
 - Insight generation preferences
 - Data statistics and reset options
 
 ## Requirements
 
-- iOS 17.0+
+- iOS 16.0+ (iOS 16 runs in compatibility mode; full SwiftData experience on iOS 17+)
 - Xcode 15.0+
-- Claude API key (get one at [console.anthropic.com](https://console.anthropic.com))
+- A configured AI proxy backend (recommended)
 
 ## Installation
 
 1. Clone the repository
 2. Open `gamman.xcodeproj` in Xcode
-3. Build and run on simulator or device
-4. Add your Claude API key in Settings
+3. Copy `Config/LocalSecrets.xcconfig.example` to `Config/LocalSecrets.xcconfig`
+4. Set `GAMMAN_AI_PROXY_BASE_URL` in `Config/LocalSecrets.xcconfig` (use `https:$(SLASH)$(SLASH)...`)
+5. Build and run on simulator or device
+
+For release/App Store builds, set production proxy URL in `Config/Release.xcconfig` (or CI overrides), not in local secret files.
+
+Detailed setup: `AI_PROXY_SETUP.md`
+Vercel backend setup: `backend/README.md`
 
 ## Tech Stack
 
@@ -52,7 +58,7 @@ A SwiftUI iOS app for tracking and understanding your nervous system through jou
 - **Data**: SwiftData (local persistence)
 - **AI**: Claude API (Haiku model)
 - **Charts**: Swift Charts
-- **Security**: iOS Keychain for API key storage
+- **Security**: Server-side key management via proxy
 
 ## Architecture
 
@@ -67,7 +73,7 @@ gamman/
 ## Privacy
 
 - All journal data stored locally on device
-- API key stored securely in iOS Keychain
+- Vendor API keys are managed server-side (not entered by end users)
 - No data leaves your device except for AI API calls
 - Journal content sent to Claude API only when generating insights
 

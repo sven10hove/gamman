@@ -18,7 +18,7 @@ actor ArchitectAgent {
             throw AgentError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             throw AgentError.noAPIKey(agent: "Architect")
         }
 
@@ -61,15 +61,21 @@ actor ArchitectAgent {
     }
 
     private func sendRequest(prompt: String, systemPrompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: baseURL) else {
+        guard let url = APIAccess.anthropicMessagesURL(defaultURL: baseURL) else {
             throw AgentError.invalidResponse(agent: "Architect", details: "Invalid URL")
         }
 
+        let usesProxy = APIAccess.usesProxy
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        if usesProxy {
+            APIAccess.applyProxyHeaders(to: &request)
+        } else {
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        }
         request.timeoutInterval = 60
 
         let body: [String: Any] = [
@@ -113,48 +119,41 @@ actor ArchitectAgent {
     }
 
     private nonisolated func parseOutline(from response: String) throws -> LessonOutline {
-        let jsonString = extractJSON(from: response)
+        do {
+            let json = try JSONParser.parseJSONObject(from: response)
 
-        guard let data = jsonString.data(using: .utf8) else {
-            throw AgentError.invalidResponse(agent: "Architect", details: "Could not convert to data")
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let title = json["title"] as? String,
-              let subtitle = json["subtitle"] as? String,
-              let sectionsArray = json["sections"] as? [[String: Any]] else {
-            throw AgentError.invalidResponse(agent: "Architect", details: "Invalid JSON structure")
-        }
-
-        let sections = sectionsArray.compactMap { sectionDict -> LessonOutline.SectionOutline? in
-            guard let heading = sectionDict["heading"] as? String,
-                  let learningObjective = sectionDict["learningObjective"] as? String else {
-                return nil
+            guard let title = json["title"] as? String,
+                  let subtitle = json["subtitle"] as? String,
+                  let sectionsArray = json["sections"] as? [[String: Any]] else {
+                throw AgentError.invalidResponse(agent: "Architect", details: "Invalid JSON structure")
             }
 
-            let keyTopics = (sectionDict["keyTopics"] as? [String]) ?? []
-            let suggestedImageConcept = (sectionDict["suggestedImageConcept"] as? String) ?? "Abstract calming illustration"
+            let sections = sectionsArray.compactMap { sectionDict -> LessonOutline.SectionOutline? in
+                guard let heading = sectionDict["heading"] as? String,
+                      let learningObjective = sectionDict["learningObjective"] as? String else {
+                    return nil
+                }
 
-            return LessonOutline.SectionOutline(
-                heading: heading,
-                learningObjective: learningObjective,
-                keyTopics: keyTopics,
-                suggestedImageConcept: suggestedImageConcept
-            )
+                let keyTopics = (sectionDict["keyTopics"] as? [String]) ?? []
+                let suggestedImageConcept = (sectionDict["suggestedImageConcept"] as? String) ?? "Abstract calming illustration"
+
+                return LessonOutline.SectionOutline(
+                    heading: heading,
+                    learningObjective: learningObjective,
+                    keyTopics: keyTopics,
+                    suggestedImageConcept: suggestedImageConcept
+                )
+            }
+
+            guard !sections.isEmpty else {
+                throw AgentError.invalidResponse(agent: "Architect", details: "No valid sections found")
+            }
+
+            return LessonOutline(title: title, subtitle: subtitle, sections: sections)
+        } catch let error as AgentError {
+            throw error
+        } catch {
+            throw AgentError.invalidResponse(agent: "Architect", details: error.localizedDescription)
         }
-
-        guard !sections.isEmpty else {
-            throw AgentError.invalidResponse(agent: "Architect", details: "No valid sections found")
-        }
-
-        return LessonOutline(title: title, subtitle: subtitle, sections: sections)
-    }
-
-    private nonisolated func extractJSON(from text: String) -> String {
-        if let startIndex = text.firstIndex(of: "{"),
-           let endIndex = text.lastIndex(of: "}") {
-            return String(text[startIndex...endIndex])
-        }
-        return text
     }
 }

@@ -8,6 +8,7 @@
 import SwiftUI
 import Charts
 
+@available(iOS 17.0, *)
 struct PatternChartView: View {
     let entries: [JournalEntry]
 
@@ -103,6 +104,7 @@ struct PatternChartView: View {
     }
 }
 
+@available(iOS 17.0, *)
 struct WeeklySummaryView: View {
     let entries: [JournalEntry]
 

@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@available(iOS 17.0, *)
 struct LessonDetailView: View {
     @Bindable var lesson: Lesson
     @State private var currentSection = 0

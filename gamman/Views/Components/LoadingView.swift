@@ -21,11 +21,7 @@ struct LoadingView: View {
                 Circle()
                     .trim(from: 0, to: 0.7)
                     .stroke(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
+                        LinearGradient.purpleBlueRecap,
                         style: StrokeStyle(lineWidth: 4, lineCap: .round)
                     )
                     .frame(width: 50, height: 50)
@@ -39,8 +35,7 @@ struct LoadingView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(40)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .glassCard(cornerRadius: 20)
         .onAppear {
             isAnimating = true
         }
@@ -66,9 +61,66 @@ struct GeneratingOverlay: View {
     }
 }
 
+// MARK: - Glass Loading Spinner
+
+struct GlassLoadingSpinner: View {
+    var size: CGFloat = 40
+    var lineWidth: CGFloat = 3
+    @State private var isAnimating = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.2), lineWidth: lineWidth)
+                .frame(width: size, height: size)
+
+            Circle()
+                .trim(from: 0, to: 0.7)
+                .stroke(
+                    LinearGradient.orangeYellowInput,
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
+                .frame(width: size, height: size)
+                .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
+        }
+        .onAppear {
+            isAnimating = true
+        }
+    }
+}
+
+// MARK: - Inline Loading State
+
+struct InlineLoadingView: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            GlassLoadingSpinner(size: 24, lineWidth: 2)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .glassCard(cornerRadius: 12)
+    }
+}
+
 #Preview {
     ZStack {
-        Color.gray.opacity(0.1).ignoresSafeArea()
-        LoadingView(message: "Generating your lesson...")
+        Color(.systemGroupedBackground)
+            .ignoresSafeArea()
+
+        VStack(spacing: 30) {
+            LoadingView(message: "Generating your lesson...")
+
+            GlassLoadingSpinner()
+
+            GlassLoadingSpinner(size: 24, lineWidth: 2)
+
+            InlineLoadingView(message: "Processing...")
+        }
     }
 }

@@ -9,9 +9,11 @@ import Foundation
 import SwiftData
 import Observation
 import UIKit
+import os
 
 @Observable
 @MainActor
+@available(iOS 17.0, *)
 final class LessonGeneratorService {
     static let shared = LessonGeneratorService()
 
@@ -42,8 +44,8 @@ final class LessonGeneratorService {
             return
         }
 
-        guard !configuration.claudeAPIKey.isEmpty else {
-            errors.append("Please add your Claude API key in Settings")
+        guard configuration.usesProxy || !configuration.claudeAPIKey.isEmpty else {
+            errors.append("AI service is not configured")
             return
         }
 
@@ -114,7 +116,7 @@ final class LessonGeneratorService {
         } catch {
             errors.append(error.localizedDescription)
             currentLesson?.lessonGenerationStatus = .failed
-            try? modelContext.save()
+            saveContext(modelContext, operation: "generation failed")
             HapticService.error()
         }
 
@@ -127,16 +129,19 @@ final class LessonGeneratorService {
         configuration: AgentConfiguration,
         context: ModelContext
     ) async {
+        // Capture values needed for child tasks before entering TaskGroup
+        let lessonTitle = outline.title
+
         await withTaskGroup(of: Void.self) { group in
             for (index, section) in sections.enumerated() {
                 let sectionOutline = outline.sections[index]
                 let previousContent = index > 0 ? sections[index - 1].displayContent : nil
 
-                group.addTask { [weak self] in
-                    await self?.processSingleSection(
+                group.addTask {
+                    await self.processSingleSection(
                         section: section,
                         sectionOutline: sectionOutline,
-                        lessonContext: outline.title,
+                        lessonContext: lessonTitle,
                         previousSummary: previousContent,
                         configuration: configuration,
                         context: context
@@ -166,7 +171,7 @@ final class LessonGeneratorService {
                 section.sectionStatus = .writing
                 sectionProgress[sectionId] = .writing
                 currentTask = "Writing: \(section.heading)..."
-                try? context.save()
+                saveContext(context, operation: "writing status")
             }
 
             let writerInput = WriterInput(
@@ -184,7 +189,7 @@ final class LessonGeneratorService {
             await MainActor.run {
                 section.content = written.content
                 section.practicePrompt = written.practicePrompt
-                try? context.save()
+                saveContext(context, operation: "content")
             }
 
             // Step 2: Fact check
@@ -211,7 +216,7 @@ final class LessonGeneratorService {
                 section.factCheckNotes = factChecked.corrections.isEmpty
                     ? nil
                     : factChecked.corrections.joined(separator: "; ")
-                try? context.save()
+                saveContext(context, operation: "fact-check")
             }
 
             // Step 3: Curate and Illustrate in parallel
@@ -257,7 +262,7 @@ final class LessonGeneratorService {
                     overallProgress = 0.1 + (0.9 * lesson.generationProgress)
                 }
 
-                try? context.save()
+                saveContext(context, operation: "section complete")
                 HapticService.impact(.light)
             }
 
@@ -267,7 +272,7 @@ final class LessonGeneratorService {
                 section.errorMessage = error.localizedDescription
                 sectionProgress[sectionId] = .failed
                 errors.append("Section '\(section.heading)': \(error.localizedDescription)")
-                try? context.save()
+                saveContext(context, operation: "section error")
             }
         }
     }
@@ -278,7 +283,8 @@ final class LessonGeneratorService {
         exaKey: String?,
         isConnected: Bool
     ) async -> [ExternalResource]? {
-        guard let key = exaKey, !key.isEmpty else { return nil }
+        let key = exaKey ?? ""
+        guard APIAccess.usesProxy || !key.isEmpty else { return nil }
 
         let input = CuratorInput(
             sectionContent: section.displayContent ?? "",
@@ -334,5 +340,16 @@ final class LessonGeneratorService {
         sectionProgress = [:]
         errors = []
         isGenerating = false
+    }
+
+    /// Safely saves the context, logging any errors
+    private func saveContext(_ context: ModelContext, operation: String) {
+        do {
+            try context.save()
+        } catch {
+            let errorMessage = "Save failed (\(operation)): \(error.localizedDescription)"
+            errors.append(errorMessage)
+            AppLogger.database.logError(errorMessage, error: error)
+        }
     }
 }

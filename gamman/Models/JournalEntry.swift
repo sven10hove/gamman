@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 
 @Model
+@available(iOS 17.0, *)
 final class JournalEntry {
     var id: UUID
     var content: String
