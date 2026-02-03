@@ -60,5 +60,5 @@ Thumbs.db
 Secrets.swift
 APIKeys.swift
 Config/LocalSecrets.xcconfig
-gamman/backend/.vercel
-gamman/backend/.env
+backend/.vercel
+backend/.env

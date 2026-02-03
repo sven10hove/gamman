@@ -27,10 +27,10 @@
 		D8E31B382F029CCC00A8BEC2 /* gamman.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = gamman.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8E31B472F029CCD00A8BEC2 /* gammanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = gammanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8E31B512F029CCD00A8BEC2 /* gammanUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = gammanUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D8E31B642F029CCE00A8BEC2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
-		D8E31B652F029CCE00A8BEC2 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
-		D8E31B672F029CCE00A8BEC2 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
-		D8E31B682F029CCE00A8BEC2 /* LocalSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = LocalSecrets.xcconfig; sourceTree = "<group>"; };
+		D8E31B642F029CCE00A8BEC2 /* Config/Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		D8E31B652F029CCE00A8BEC2 /* Config/Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Release.xcconfig; sourceTree = SOURCE_ROOT; };
+		D8E31B672F029CCE00A8BEC2 /* Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = SOURCE_ROOT; };
+		D8E31B682F029CCE00A8BEC2 /* Config/LocalSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/LocalSecrets.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -100,10 +100,10 @@
 		D8E31B662F029CCE00A8BEC2 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				D8E31B672F029CCE00A8BEC2 /* Base.xcconfig */,
-				D8E31B642F029CCE00A8BEC2 /* Debug.xcconfig */,
-				D8E31B682F029CCE00A8BEC2 /* LocalSecrets.xcconfig */,
-				D8E31B652F029CCE00A8BEC2 /* Release.xcconfig */,
+				D8E31B672F029CCE00A8BEC2 /* Config/Base.xcconfig */,
+				D8E31B642F029CCE00A8BEC2 /* Config/Debug.xcconfig */,
+				D8E31B682F029CCE00A8BEC2 /* Config/LocalSecrets.xcconfig */,
+				D8E31B652F029CCE00A8BEC2 /* Config/Release.xcconfig */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -408,7 +408,7 @@
 		};
 		D8E31B5C2F029CCD00A8BEC2 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D8E31B642F029CCE00A8BEC2 /* Debug.xcconfig */;
+			baseConfigurationReference = D8E31B642F029CCE00A8BEC2 /* Config/Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphoneos*]" = AppIcon;
@@ -443,7 +443,7 @@
 		};
 		D8E31B5D2F029CCD00A8BEC2 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D8E31B652F029CCE00A8BEC2 /* Release.xcconfig */;
+			baseConfigurationReference = D8E31B652F029CCE00A8BEC2 /* Config/Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

@@ -1,0 +1,9 @@
+{
+  "name": "gamman-ai-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel serverless proxy for Gamman AI providers",
+  "engines": {
+    "node": ">=18"
+  }
+}
