@@ -1,0 +1,6 @@
+#include "Base.xcconfig"
+
+// Keep Release values explicit to avoid shipping local debug secrets.
+// Set GAMMAN_AI_PROXY_BASE_URL here (or in CI) for production builds.
+// Example:
+// GAMMAN_AI_PROXY_BASE_URL = https:$(SLASH)$(SLASH)api.yourdomain.com

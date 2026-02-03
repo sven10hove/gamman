@@ -17,7 +17,7 @@ actor IllustratorAgent {
             throw AgentError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             // Return fallback instead of throwing for optional agent
             return IllustratorOutput(
                 imageURL: nil,
@@ -62,14 +62,20 @@ actor IllustratorAgent {
     }
 
     private func generateImage(prompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: dalleURL) else {
+        guard let url = APIAccess.openAIImagesURL(defaultURL: dalleURL) else {
             throw AgentError.invalidResponse(agent: "Illustrator", details: "Invalid URL")
         }
 
+        let usesProxy = APIAccess.usesProxy
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        if usesProxy {
+            APIAccess.applyProxyHeaders(to: &request)
+        } else {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         request.timeoutInterval = 60
 
         let body: [String: Any] = [

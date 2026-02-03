@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 
 @Model
+@available(iOS 17.0, *)
 final class UserInsight {
     var id: UUID
     var title: String

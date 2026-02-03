@@ -21,6 +21,7 @@ struct GeneratedLessonContent: Sendable {
         let practicePrompt: String?
     }
 
+    @available(iOS 17.0, *)
     @MainActor
     func toLessonSections() -> [LessonSectionData] {
         sections.map { section in
@@ -70,7 +71,7 @@ actor ClaudeAPIService {
         var errorDescription: String? {
             switch self {
             case .noAPIKey:
-                return "Please add your Claude API key in Settings"
+                return "AI service is not configured"
             case .networkError(let message):
                 return "Network error: \(message)"
             case .invalidResponse:
@@ -94,7 +95,7 @@ actor ClaudeAPIService {
             throw APIError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             throw APIError.noAPIKey
         }
 
@@ -141,7 +142,7 @@ actor ClaudeAPIService {
             throw APIError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             throw APIError.noAPIKey
         }
 
@@ -196,15 +197,21 @@ actor ClaudeAPIService {
     // MARK: - API Request
 
     private func sendRequest(prompt: String, systemPrompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: baseURL) else {
+        guard let url = APIAccess.anthropicMessagesURL(defaultURL: baseURL) else {
             throw APIError.invalidResponse
         }
 
+        let usesProxy = APIAccess.usesProxy
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        if usesProxy {
+            APIAccess.applyProxyHeaders(to: &request)
+        } else {
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        }
         request.timeoutInterval = 60
 
         let body: [String: Any] = [
@@ -253,58 +260,55 @@ actor ClaudeAPIService {
     // MARK: - Response Parsing (nonisolated to avoid MainActor issues)
 
     private nonisolated static func parseLesson(from response: String) throws -> GeneratedLessonContent {
-        let jsonString = extractJSON(from: response)
+        do {
+            let json = try JSONParser.parseJSONObject(from: response)
 
-        guard let data = jsonString.data(using: .utf8) else {
-            throw APIError.decodingError("Could not convert response to data")
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let title = json["title"] as? String,
-              let subtitle = json["subtitle"] as? String,
-              let sectionsArray = json["sections"] as? [[String: Any]] else {
-            throw APIError.decodingError("Invalid lesson JSON structure")
-        }
-
-        let sections = sectionsArray.compactMap { sectionDict -> GeneratedLessonContent.GeneratedSection? in
-            guard let heading = sectionDict["heading"] as? String,
-                  let content = sectionDict["content"] as? String else {
-                return nil
+            guard let title = json["title"] as? String,
+                  let subtitle = json["subtitle"] as? String,
+                  let sectionsArray = json["sections"] as? [[String: Any]] else {
+                throw APIError.decodingError("Invalid lesson JSON structure")
             }
-            return GeneratedLessonContent.GeneratedSection(
-                heading: heading,
-                content: content,
-                imageSystemName: sectionDict["imageSystemName"] as? String,
-                practicePrompt: sectionDict["practicePrompt"] as? String
-            )
-        }
 
-        return GeneratedLessonContent(title: title, subtitle: subtitle, sections: sections)
+            let sections = sectionsArray.compactMap { sectionDict -> GeneratedLessonContent.GeneratedSection? in
+                guard let heading = sectionDict["heading"] as? String,
+                      let content = sectionDict["content"] as? String else {
+                    return nil
+                }
+                return GeneratedLessonContent.GeneratedSection(
+                    heading: heading,
+                    content: content,
+                    imageSystemName: sectionDict["imageSystemName"] as? String,
+                    practicePrompt: sectionDict["practicePrompt"] as? String
+                )
+            }
+
+            return GeneratedLessonContent(title: title, subtitle: subtitle, sections: sections)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.decodingError(error.localizedDescription)
+        }
     }
 
     private nonisolated static func parseInsight(from response: String) throws -> GeneratedInsightContent {
-        let jsonString = extractJSON(from: response)
+        do {
+            let json = try JSONParser.parseJSONObject(from: response)
 
-        guard let data = jsonString.data(using: .utf8) else {
-            throw APIError.decodingError("Could not convert response to data")
+            guard let title = json["title"] as? String else {
+                throw APIError.decodingError("Missing 'title' key")
+            }
+
+            let category = (json["category"] as? String) ?? "observation"
+
+            guard let content = json["content"] as? String else {
+                throw APIError.decodingError("Missing 'content' key")
+            }
+
+            return GeneratedInsightContent(title: title, category: category, content: content)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.decodingError("Invalid insight JSON structure: \(error.localizedDescription)")
         }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let title = json["title"] as? String,
-              let category = json["category"] as? String,
-              let content = json["content"] as? String else {
-            throw APIError.decodingError("Invalid insight JSON structure")
-        }
-
-        return GeneratedInsightContent(title: title, category: category, content: content)
-    }
-
-    private nonisolated static func extractJSON(from text: String) -> String {
-        // Find JSON object in response (between first { and last })
-        if let startIndex = text.firstIndex(of: "{"),
-           let endIndex = text.lastIndex(of: "}") {
-            return String(text[startIndex...endIndex])
-        }
-        return text
     }
 }

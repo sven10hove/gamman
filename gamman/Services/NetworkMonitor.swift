@@ -7,7 +7,9 @@
 
 import Network
 import Foundation
+import Observation
 
+@available(iOS 17.0, *)
 @Observable
 class NetworkMonitor {
     static let shared = NetworkMonitor()

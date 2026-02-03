@@ -13,17 +13,20 @@ struct AgentConfiguration: Sendable {
     let claudeAPIKey: String
     let exaAPIKey: String?
     let imageAPIKey: String?
+    let usesProxy: Bool
     let isConnected: Bool
 
     init(
         claudeAPIKey: String,
         exaAPIKey: String? = nil,
         imageAPIKey: String? = nil,
+        usesProxy: Bool = APIAccess.usesProxy,
         isConnected: Bool = true
     ) {
         self.claudeAPIKey = claudeAPIKey
         self.exaAPIKey = exaAPIKey
         self.imageAPIKey = imageAPIKey
+        self.usesProxy = usesProxy
         self.isConnected = isConnected
     }
 }
@@ -140,7 +143,7 @@ struct RetryConfiguration: Sendable {
     let baseDelay: TimeInterval
     let maxDelay: TimeInterval
 
-    static let `default` = RetryConfiguration(
+    nonisolated static let `default` = RetryConfiguration(
         maxAttempts: 3,
         baseDelay: 1.0,
         maxDelay: 30.0

@@ -18,7 +18,7 @@ actor FactCheckerAgent {
             throw AgentError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             throw AgentError.noAPIKey(agent: "Fact Checker")
         }
 
@@ -66,15 +66,21 @@ actor FactCheckerAgent {
     }
 
     private func sendRequest(prompt: String, systemPrompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: baseURL) else {
+        guard let url = APIAccess.anthropicMessagesURL(defaultURL: baseURL) else {
             throw AgentError.invalidResponse(agent: "Fact Checker", details: "Invalid URL")
         }
 
+        let usesProxy = APIAccess.usesProxy
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        if usesProxy {
+            APIAccess.applyProxyHeaders(to: &request)
+        } else {
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        }
         request.timeoutInterval = 60
 
         let body: [String: Any] = [
@@ -118,34 +124,27 @@ actor FactCheckerAgent {
     }
 
     private nonisolated func parseOutput(from response: String) throws -> FactCheckerOutput {
-        let jsonString = extractJSON(from: response)
+        do {
+            let json = try JSONParser.parseJSONObject(from: response)
 
-        guard let data = jsonString.data(using: .utf8) else {
-            throw AgentError.invalidResponse(agent: "Fact Checker", details: "Could not convert to data")
+            guard let revisedContent = json["revisedContent"] as? String else {
+                throw AgentError.invalidResponse(agent: "Fact Checker", details: "Missing 'revisedContent' key")
+            }
+
+            let corrections = (json["corrections"] as? [String]) ?? []
+            let confidenceScore = (json["confidenceScore"] as? Double) ?? 0.8
+            let warnings = json["warnings"] as? [String]
+
+            return FactCheckerOutput(
+                revisedContent: revisedContent,
+                corrections: corrections,
+                confidenceScore: confidenceScore,
+                warnings: warnings
+            )
+        } catch let error as AgentError {
+            throw error
+        } catch {
+            throw AgentError.invalidResponse(agent: "Fact Checker", details: error.localizedDescription)
         }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let revisedContent = json["revisedContent"] as? String else {
-            throw AgentError.invalidResponse(agent: "Fact Checker", details: "Invalid JSON structure")
-        }
-
-        let corrections = (json["corrections"] as? [String]) ?? []
-        let confidenceScore = (json["confidenceScore"] as? Double) ?? 0.8
-        let warnings = json["warnings"] as? [String]
-
-        return FactCheckerOutput(
-            revisedContent: revisedContent,
-            corrections: corrections,
-            confidenceScore: confidenceScore,
-            warnings: warnings
-        )
-    }
-
-    private nonisolated func extractJSON(from text: String) -> String {
-        if let startIndex = text.firstIndex(of: "{"),
-           let endIndex = text.lastIndex(of: "}") {
-            return String(text[startIndex...endIndex])
-        }
-        return text
     }
 }

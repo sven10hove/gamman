@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@available(iOS 17.0, *)
 struct EmptyStateView: View {
     let icon: String
     let title: String

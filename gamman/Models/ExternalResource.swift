@@ -7,7 +7,27 @@
 
 import Foundation
 
-struct ExternalResource: Codable, Sendable, Identifiable, Hashable {
+enum ResourceType: String, Codable, Sendable, CaseIterable {
+    case article
+    case video
+    case research
+    case book
+    case podcast
+    case other
+
+    nonisolated var systemImage: String {
+        switch self {
+        case .article: return "doc.text"
+        case .video: return "play.rectangle"
+        case .research: return "newspaper"
+        case .book: return "book"
+        case .podcast: return "headphones"
+        case .other: return "link"
+        }
+    }
+}
+
+struct ExternalResource: Codable, Hashable, Identifiable, @unchecked Sendable {
     let id: UUID
     let title: String
     let url: String
@@ -15,34 +35,15 @@ struct ExternalResource: Codable, Sendable, Identifiable, Hashable {
     let resourceType: ResourceType
     let relevanceScore: Double?
 
-    enum ResourceType: String, Codable, Sendable {
-        case article
-        case video
-        case research
-        case book
-        case podcast
-        case other
-
-        var systemImage: String {
-            switch self {
-            case .article: return "doc.text"
-            case .video: return "play.rectangle"
-            case .research: return "newspaper"
-            case .book: return "book"
-            case .podcast: return "headphones"
-            case .other: return "link"
-            }
-        }
-    }
-
-    init(
+    nonisolated init(
+        id: UUID,
         title: String,
         url: String,
-        snippet: String? = nil,
-        resourceType: ResourceType = .article,
-        relevanceScore: Double? = nil
+        snippet: String?,
+        resourceType: ResourceType,
+        relevanceScore: Double?
     ) {
-        self.id = UUID()
+        self.id = id
         self.title = title
         self.url = url
         self.snippet = snippet

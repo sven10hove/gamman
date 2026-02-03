@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@available(iOS 17.0, *)
 struct JournalEntryView: View {
     let entry: JournalEntry
     @State private var showingEditor = false
@@ -104,6 +105,7 @@ struct JournalEntryView: View {
 }
 
 // Simple flow layout for tags
+@available(iOS 17.0, *)
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 

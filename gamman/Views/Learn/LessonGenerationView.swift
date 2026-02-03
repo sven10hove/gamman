@@ -8,29 +8,34 @@
 import SwiftUI
 import SwiftData
 
+@available(iOS 17.0, *)
 struct LessonGenerationView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Query private var settings: [UserSettings]
 
     @State private var prompt: String = ""
     @State private var navigateToLesson = false
+    @State private var showingErrorAlert = false
 
     var generatorService = LessonGeneratorService.shared
     var networkMonitor = NetworkMonitor.shared
 
-    private var apiKey: String? {
-        KeychainService.getAPIKey() ?? settings.first?.apiKey
+    private var hasAPIKey: Bool {
+        APIAccess.hasClaudeAccess
     }
 
-    private var hasAPIKey: Bool {
-        guard let key = apiKey else { return false }
-        return !key.isEmpty
+    private var canGenerate: Bool {
+        !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        networkMonitor.isConnected &&
+        hasAPIKey
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+
                 if generatorService.isGenerating {
                     GenerationProgressView(
                         service: generatorService,
@@ -39,11 +44,12 @@ struct LessonGenerationView: View {
                         }
                     )
                 } else {
-                    promptInputForm
+                    promptInputView
                 }
             }
             .navigationTitle(generatorService.isGenerating ? "Creating Lesson" : "New Lesson")
             .navigationBarTitleDisplayMode(.inline)
+            .glassNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if !generatorService.isGenerating {
@@ -55,11 +61,18 @@ struct LessonGenerationView: View {
 
                 if !generatorService.isGenerating {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Generate") {
+                        Button {
                             startGeneration()
+                        } label: {
+                            Text("Create")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(canGenerate ? LinearGradient.purpleBlueRecap : LinearGradient(colors: [.gray], startPoint: .leading, endPoint: .trailing))
+                                .clipShape(Capsule())
                         }
-                        .fontWeight(.semibold)
-                        .disabled(prompt.isEmpty || !networkMonitor.isConnected || !hasAPIKey)
+                        .disabled(!canGenerate)
                     }
                 }
             }
@@ -74,109 +87,119 @@ struct LessonGenerationView: View {
                         }
                 }
             }
+            .alert("Generation Issue", isPresented: $showingErrorAlert) {
+                Button("OK") {
+                    showingErrorAlert = false
+                }
+            } message: {
+                Text(generatorService.errors.joined(separator: "\n"))
+            }
+            .onChange(of: generatorService.errors) { _, newErrors in
+                if !newErrors.isEmpty && !generatorService.isGenerating {
+                    showingErrorAlert = true
+                }
+            }
         }
     }
 
-    private var promptInputForm: some View {
-        Form {
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("What would you like to learn about?")
-                        .font(.headline)
+    // MARK: - Prompt Input View
 
-                    Text("Our AI team will create a comprehensive, fact-checked lesson with resources and illustrations.")
+    private var promptInputView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.largeTitle)
+                        .foregroundStyle(LinearGradient.purpleBlueRecap)
+
+                    Text("What would you like to learn?")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+
+                    Text("We'll create a personalized lesson just for you")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-
-                    TextEditor(text: $prompt)
-                        .frame(minHeight: 120)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.gray.opacity(0.3))
-                        )
                 }
-            }
+                .padding(.top, 20)
 
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Example topics:")
-                        .font(.caption)
+                // Text input
+                GlassTextInput(
+                    text: $prompt,
+                    placeholder: "e.g., How can breathing exercises calm my nervous system?",
+                    characterLimit: 300,
+                    minHeight: 140
+                )
+                .padding(.horizontal)
+
+                // Example topics
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Try these topics")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                         .foregroundStyle(.secondary)
+                        .padding(.horizontal)
 
-                    ForEach(examplePrompts, id: \.self) { example in
-                        Button {
-                            prompt = example
-                        } label: {
-                            Text(example)
-                                .font(.caption)
-                                .multilineTextAlignment(.leading)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(examplePrompts, id: \.self) { example in
+                                TopicChip(text: example) {
+                                    HapticService.selection()
+                                    prompt = example
+                                }
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.blue)
+                        .padding(.horizontal)
                     }
                 }
-            }
 
-            Section {
-                agentInfoView
-            }
+                // Status warnings
+                if !hasAPIKey || !networkMonitor.isConnected {
+                    VStack(spacing: 12) {
+                        if !hasAPIKey {
+                            StatusBanner(
+                                icon: "key.fill",
+                                message: "AI service unavailable",
+                                color: .orange
+                            )
+                        }
 
-            if !hasAPIKey {
-                Section {
-                    Label("Add API key in Settings", systemImage: "key.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
+                        if !networkMonitor.isConnected {
+                            StatusBanner(
+                                icon: "wifi.slash",
+                                message: "You're offline",
+                                color: .red
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-            }
 
-            if !networkMonitor.isConnected {
-                Section {
-                    Label("You're offline", systemImage: "wifi.slash")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                }
-            }
-        }
-    }
-
-    private var agentInfoView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Powered by AI Agents")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 16) {
-                AgentBadge(icon: "pencil.and.outline", name: "Architect", color: .blue)
-                AgentBadge(icon: "text.quote", name: "Writer", color: .green)
-                AgentBadge(icon: "checkmark.shield", name: "Fact Checker", color: .orange)
-            }
-
-            HStack(spacing: 16) {
-                AgentBadge(icon: "link", name: "Curator", color: .purple)
-                AgentBadge(icon: "photo.artframe", name: "Illustrator", color: .pink)
+                Spacer(minLength: 100)
             }
         }
     }
 
     private var examplePrompts: [String] {
         [
-            "How can I use breathing exercises to calm my nervous system?",
-            "What is the window of tolerance and how can I expand it?",
-            "Explain how trauma affects the nervous system",
-            "What are some grounding techniques for anxiety?",
-            "How does co-regulation work in relationships?"
+            "Breathing exercises for anxiety",
+            "Window of tolerance explained",
+            "How trauma affects the body",
+            "Grounding techniques",
+            "Co-regulation in relationships"
         ]
     }
 
     private func startGeneration() {
-        guard let key = apiKey, !key.isEmpty else { return }
+        guard APIAccess.hasClaudeAccess else { return }
 
         HapticService.impact(.medium)
 
         let config = AgentConfiguration(
-            claudeAPIKey: key,
-            exaAPIKey: KeychainService.getExaAPIKey(),
-            imageAPIKey: KeychainService.getOpenAIAPIKey(),
+            claudeAPIKey: APIAccess.claudeAPIKey ?? "",
+            exaAPIKey: APIAccess.exaAPIKey,
+            imageAPIKey: APIAccess.openAIAPIKey,
+            usesProxy: APIAccess.usesProxy,
             isConnected: networkMonitor.isConnected
         )
 
@@ -190,22 +213,46 @@ struct LessonGenerationView: View {
     }
 }
 
-struct AgentBadge: View {
+// MARK: - Topic Chip
+
+@available(iOS 17.0, *)
+struct TopicChip: View {
+    let text: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .glassCard(cornerRadius: 20)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Status Banner
+
+@available(iOS 17.0, *)
+struct StatusBanner: View {
     let icon: String
-    let name: String
+    let message: String
     let color: Color
 
     var body: some View {
-        VStack(spacing: 4) {
+        HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.title3)
                 .foregroundStyle(color)
 
-            Text(name)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            Text(message)
+                .font(.subheadline)
+
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
+        .padding()
+        .glassCard(cornerRadius: 12, tint: color)
     }
 }
 

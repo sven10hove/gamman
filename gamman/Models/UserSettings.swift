@@ -9,11 +9,11 @@ import Foundation
 import SwiftData
 
 @Model
+@available(iOS 17.0, *)
 final class UserSettings {
     var id: UUID
     var insightFrequency: String
     var minimumEntriesForInsight: Int
-    var apiKey: String?
     var hasCompletedOnboarding: Bool
     var preferredAnalysisTimeframe: Int
     var notificationsEnabled: Bool
@@ -23,7 +23,6 @@ final class UserSettings {
         self.id = UUID()
         self.insightFrequency = "weekly"
         self.minimumEntriesForInsight = 5
-        self.apiKey = nil
         self.hasCompletedOnboarding = false
         self.preferredAnalysisTimeframe = 7
         self.notificationsEnabled = false

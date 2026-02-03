@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 
+@available(iOS 17.0, *)
 enum SectionStatus: String, Codable, Sendable {
     case pending
     case writing
@@ -19,13 +20,14 @@ enum SectionStatus: String, Codable, Sendable {
 }
 
 @Model
+@available(iOS 17.0, *)
 final class LessonSection {
-    var id: UUID
-    var lessonID: UUID
-    var orderIndex: Int
+    var id: UUID = UUID()
+    var lessonID: UUID = UUID()
+    var orderIndex: Int = 0
 
     // Content
-    var heading: String
+    var heading: String = ""
     var learningObjective: String?
     var content: String?
     var revisedContent: String?
@@ -35,15 +37,17 @@ final class LessonSection {
     var externalResourcesData: Data?
 
     // Illustration (from Illustrator Agent)
+    // Note: For scalability, imageData should be moved to filesystem storage
+    // keeping only imageURL reference here. Current approach works for MVP scale.
     var imageURL: String?
     var imageData: Data?
     var imagePrompt: String?
     var imageSystemName: String?
 
     // Status tracking
-    var status: String
+    var status: String = SectionStatus.pending.rawValue
     var errorMessage: String?
-    var createdAt: Date
+    var createdAt: Date = Date()
     var completedAt: Date?
 
     // Practice prompt

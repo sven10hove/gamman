@@ -1,0 +1,25 @@
+// Shared build settings for app configuration.
+// Keep real vendor API keys on your backend, not in this app.
+
+// xcconfig treats `//` as comments, so use $(SLASH) when composing URLs.
+SLASH = /
+
+// Proxy config (safe to commit when non-sensitive).
+GAMMAN_AI_PROXY_BASE_URL =
+
+// Optional low-trust client token for your proxy.
+// Do not treat this as a strong secret.
+GAMMAN_AI_PROXY_CLIENT_TOKEN =
+
+// Optional local fallback keys for development only.
+// Leave empty in shared configs.
+GAMMAN_CLAUDE_API_KEY =
+GAMMAN_EXA_API_KEY =
+GAMMAN_OPENAI_API_KEY =
+
+// Inject config into generated Info.plist.
+INFOPLIST_KEY_GAMMAN_AI_PROXY_BASE_URL = $(GAMMAN_AI_PROXY_BASE_URL)
+INFOPLIST_KEY_GAMMAN_AI_PROXY_CLIENT_TOKEN = $(GAMMAN_AI_PROXY_CLIENT_TOKEN)
+INFOPLIST_KEY_GAMMAN_CLAUDE_API_KEY = $(GAMMAN_CLAUDE_API_KEY)
+INFOPLIST_KEY_GAMMAN_EXA_API_KEY = $(GAMMAN_EXA_API_KEY)
+INFOPLIST_KEY_GAMMAN_OPENAI_API_KEY = $(GAMMAN_OPENAI_API_KEY)

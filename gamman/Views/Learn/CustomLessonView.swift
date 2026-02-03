@@ -8,10 +8,10 @@
 import SwiftUI
 import SwiftData
 
+@available(iOS 17.0, *)
 struct CustomLessonView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Query private var settings: [UserSettings]
 
     @State private var prompt: String = ""
     @State private var isGenerating = false
@@ -19,14 +19,8 @@ struct CustomLessonView: View {
 
     var networkMonitor = NetworkMonitor.shared
 
-    private var apiKey: String? {
-        // Check Keychain first, then fall back to settings
-        KeychainService.getAPIKey() ?? settings.first?.apiKey
-    }
-
     private var hasAPIKey: Bool {
-        guard let key = apiKey else { return false }
-        return !key.isEmpty
+        APIAccess.hasClaudeAccess
     }
 
     var body: some View {
@@ -73,10 +67,10 @@ struct CustomLessonView: View {
                 if !hasAPIKey {
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
-                            Label("API Key Required", systemImage: "key.fill")
+                            Label("AI Service Required", systemImage: "key.fill")
                                 .font(.subheadline)
                                 .foregroundStyle(.orange)
-                            Text("Add your Claude API key in Settings to generate custom lessons.")
+                            Text("AI service is unavailable right now.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -139,8 +133,8 @@ struct CustomLessonView: View {
     }
 
     private func generateLesson() {
-        guard let key = apiKey, !key.isEmpty else {
-            errorMessage = "Please add your API key in Settings"
+        guard APIAccess.hasClaudeAccess else {
+            errorMessage = "AI service is not configured"
             return
         }
 
@@ -153,7 +147,7 @@ struct CustomLessonView: View {
             do {
                 let generatedContent = try await ClaudeAPIService.shared.generateLesson(
                     prompt: prompt,
-                    apiKey: key,
+                    apiKey: APIAccess.claudeAPIKey ?? "",
                     isConnected: isConnected
                 )
 

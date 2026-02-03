@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 
+@available(iOS 17.0, *)
 struct LessonSectionData: Codable, Hashable {
     let heading: String
     let content: String
@@ -15,6 +16,7 @@ struct LessonSectionData: Codable, Hashable {
     let practicePrompt: String?
 }
 
+@available(iOS 17.0, *)
 enum LessonGenerationStatus: String, Codable, Sendable {
     case notStarted
     case generating
@@ -24,6 +26,7 @@ enum LessonGenerationStatus: String, Codable, Sendable {
 }
 
 @Model
+@available(iOS 17.0, *)
 final class Lesson {
     var id: UUID
     var title: String
@@ -38,9 +41,9 @@ final class Lesson {
     var userPrompt: String?
 
     // Multi-agent generation tracking
-    var generationStatus: String
-    var totalSections: Int
-    var completedSections: Int
+    var generationStatus: String = LessonGenerationStatus.notStarted.rawValue
+    var totalSections: Int = 0
+    var completedSections: Int = 0
     var currentAgentTask: String?
     var generationStartedAt: Date?
     var generationCompletedAt: Date?
@@ -93,6 +96,9 @@ final class Lesson {
         self.generationStartedAt = Date()
     }
 
+    /// Legacy sections accessor for pre-built lessons loaded from JSON.
+    /// Generated lessons use LessonSection model directly; this property
+    /// is populated at generation completion for backward compatibility.
     var sections: [LessonSectionData] {
         get {
             (try? JSONDecoder().decode([LessonSectionData].self, from: sectionsData)) ?? []

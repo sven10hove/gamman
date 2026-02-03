@@ -18,7 +18,7 @@ actor WriterAgent {
             throw AgentError.offline
         }
 
-        guard !apiKey.isEmpty else {
+        guard APIAccess.usesProxy || !apiKey.isEmpty else {
             throw AgentError.noAPIKey(agent: "Writer")
         }
 
@@ -68,15 +68,21 @@ actor WriterAgent {
     }
 
     private func sendRequest(prompt: String, systemPrompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: baseURL) else {
+        guard let url = APIAccess.anthropicMessagesURL(defaultURL: baseURL) else {
             throw AgentError.invalidResponse(agent: "Writer", details: "Invalid URL")
         }
 
+        let usesProxy = APIAccess.usesProxy
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        if usesProxy {
+            APIAccess.applyProxyHeaders(to: &request)
+        } else {
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        }
         request.timeoutInterval = 60
 
         let body: [String: Any] = [
@@ -120,32 +126,28 @@ actor WriterAgent {
     }
 
     private nonisolated func parseOutput(from response: String) throws -> WriterOutput {
-        let jsonString = extractJSON(from: response)
+        do {
+            let json = try JSONParser.parseJSONObject(from: response)
 
-        guard let data = jsonString.data(using: .utf8) else {
-            throw AgentError.invalidResponse(agent: "Writer", details: "Could not convert to data")
+            let content: String
+            if let contentStr = json["content"] as? String {
+                content = contentStr
+            } else {
+                throw AgentError.invalidResponse(agent: "Writer", details: "No 'content' key in JSON. Found keys: \(Array(json.keys))")
+            }
+
+            let practicePrompt = json["practicePrompt"] as? String ?? json["practice_prompt"] as? String
+            let keyTakeaways = (json["keyTakeaways"] as? [String]) ?? (json["key_takeaways"] as? [String]) ?? []
+
+            return WriterOutput(
+                content: content,
+                practicePrompt: practicePrompt,
+                keyTakeaways: keyTakeaways
+            )
+        } catch let error as AgentError {
+            throw error
+        } catch {
+            throw AgentError.invalidResponse(agent: "Writer", details: error.localizedDescription)
         }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = json["content"] as? String else {
-            throw AgentError.invalidResponse(agent: "Writer", details: "Invalid JSON structure")
-        }
-
-        let practicePrompt = json["practicePrompt"] as? String
-        let keyTakeaways = (json["keyTakeaways"] as? [String]) ?? []
-
-        return WriterOutput(
-            content: content,
-            practicePrompt: practicePrompt,
-            keyTakeaways: keyTakeaways
-        )
-    }
-
-    private nonisolated func extractJSON(from text: String) -> String {
-        if let startIndex = text.firstIndex(of: "{"),
-           let endIndex = text.lastIndex(of: "}") {
-            return String(text[startIndex...endIndex])
-        }
-        return text
     }
 }
