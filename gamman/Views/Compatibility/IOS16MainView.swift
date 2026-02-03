@@ -7,8 +7,9 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
-private enum IOS16State: String, CaseIterable, Identifiable, Codable {
+enum IOS16State: String, CaseIterable, Identifiable, Codable {
     case ventral
     case sympathetic
     case dorsalVagal
@@ -35,7 +36,7 @@ private enum IOS16State: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-private struct IOS16JournalEntry: Identifiable, Codable {
+struct IOS16JournalEntry: Identifiable, Codable {
     let id: UUID
     let createdAt: Date
     let state: IOS16State
