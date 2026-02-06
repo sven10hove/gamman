@@ -143,6 +143,46 @@ extension View {
     }
 }
 
+// MARK: - Liquid Primary Button Style
+
+struct LiquidPrimaryButtonStyle: ButtonStyle {
+    var cornerRadius: CGFloat = 14
+    var horizontalPadding: CGFloat = 16
+    var verticalPadding: CGFloat = 12
+    var fillWidth: Bool = false
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .frame(maxWidth: fillWidth ? .infinity : nil)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(LinearGradient.purpleBlueRecap.opacity(isEnabled ? 1.0 : 0.55))
+
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(LinearGradient.glassOverlay.opacity(isEnabled ? 1.0 : 0.8))
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(.white.opacity(configuration.isPressed ? 0.35 : 0.2), lineWidth: 1)
+            }
+            .shadow(
+                color: Color.appPurple.opacity(isEnabled ? 0.3 : 0.15),
+                radius: isEnabled ? 8 : 4,
+                y: isEnabled ? 4 : 2
+            )
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .scaleEffect(configuration.isPressed && isEnabled ? 0.98 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Preview
 
 #Preview {

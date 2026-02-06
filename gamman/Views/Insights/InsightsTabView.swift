@@ -25,8 +25,21 @@ struct InsightsTabView: View {
         APIAccess.hasClaudeAccess
     }
 
+    private var minimumEntriesForInsight: Int {
+        settings.first?.minimumEntriesForInsight ?? 3
+    }
+
+    private var preferredAnalysisTimeframeDays: Int {
+        settings.first?.preferredAnalysisTimeframe ?? 7
+    }
+
+    private var entriesInPreferredWindow: [JournalEntry] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -preferredAnalysisTimeframeDays, to: Date()) ?? .distantPast
+        return entries.filter { $0.timestamp >= cutoff }
+    }
+
     private var canGenerate: Bool {
-        hasAPIKey && networkMonitor.isConnected && entries.count >= 3 && !isGenerating
+        hasAPIKey && networkMonitor.isConnected && entriesInPreferredWindow.count >= minimumEntriesForInsight && !isGenerating
     }
 
     // Calculate entries from the past week
@@ -89,7 +102,7 @@ struct InsightsTabView: View {
                         if isGenerating {
                             ProgressView()
                         } else {
-                            Image(systemName: "sparkles")
+                            Image(systemName: "plus.circle.fill")
                                 .font(.title2)
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundStyle(Color.appPurple)
@@ -125,15 +138,24 @@ struct InsightsTabView: View {
             } else {
                 LazyVStack(spacing: 16) {
                     ForEach(insights) { insight in
-                        GlassInsightCard(insight: insight)
-                            .padding(.horizontal)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    deleteInsight(insight)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                        NavigationLink(destination: InsightDetailView(insight: insight)) {
+                            GlassInsightCard(insight: insight)
+                        }
+                        .buttonStyle(.plain)
+                        .simultaneousGesture(
+                            TapGesture().onEnded {
+                                HapticService.selection()
+                                markInsightAsRead(insight)
                             }
+                        )
+                        .padding(.horizontal)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                deleteInsight(insight)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
@@ -203,10 +225,10 @@ struct InsightsTabView: View {
                 .font(.caption)
                 .padding()
                 .glassCard(cornerRadius: 20)
-            } else if entries.count < 3 && selectedView == 0 {
+            } else if entriesInPreferredWindow.count < minimumEntriesForInsight && selectedView == 0 {
                 HStack {
                     Image(systemName: "pencil.line")
-                    Text("Add \(3 - entries.count) more entries for insights")
+                    Text("Add \(minimumEntriesForInsight - entriesInPreferredWindow.count) more entries for insights")
                 }
                 .font(.caption)
                 .padding()
@@ -233,25 +255,32 @@ struct InsightsTabView: View {
         }
     }
 
+    private func markInsightAsRead(_ insight: UserInsight) {
+        if !insight.isRead {
+            insight.isRead = true
+        }
+    }
+
     private func generateInsight() {
-        print("🔮 Starting insight generation...")
+        AppLogger.ui.logDebug("Starting insight generation")
 
         guard APIAccess.hasClaudeAccess else {
             errorMessage = "AI service is not configured"
-            print("❌ AI service unavailable")
+            AppLogger.ui.logWarning("Insight generation blocked: AI service unavailable")
             return
         }
 
-        print("   - AI access configured: \(APIAccess.hasClaudeAccess)")
-        print("   - Entries count: \(entries.count)")
-        print("   - Network connected: \(networkMonitor.isConnected)")
+        guard entriesInPreferredWindow.count >= minimumEntriesForInsight else {
+            errorMessage = "Add at least \(minimumEntriesForInsight) entries in the past \(preferredAnalysisTimeframeDays) days"
+            AppLogger.ui.logWarning("Insight generation blocked: insufficient entries")
+            return
+        }
 
         isGenerating = true
         errorMessage = nil
 
         // Extract data from entries on MainActor before passing to actor
-        let recentEntries = Array(entries.prefix(15))
-        print("   - Using \(recentEntries.count) entries for analysis")
+        let recentEntries = Array(entriesInPreferredWindow.prefix(30))
 
         let summaries = recentEntries.map { entry in
             JournalEntrySummary(
@@ -267,13 +296,11 @@ struct InsightsTabView: View {
 
         Task {
             do {
-                print("📡 Calling ClaudeAPIService.generateInsight...")
                 let generatedContent = try await ClaudeAPIService.shared.generateInsight(
                     from: summaries,
                     apiKey: APIAccess.claudeAPIKey ?? "",
                     isConnected: isConnected
                 )
-                print("✅ Insight generated: \(generatedContent.title)")
 
                 let insight = UserInsight(
                     title: generatedContent.title,
@@ -295,12 +322,16 @@ struct InsightsTabView: View {
 
                 await MainActor.run {
                     modelContext.insert(insight)
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        AppLogger.database.logError("Failed to save generated insight", error: error)
+                    }
                     isGenerating = false
                     HapticService.success()
                 }
             } catch {
-                print("❌ Insight generation failed: \(error)")
-                print("   Error description: \(error.localizedDescription)")
+                AppLogger.ui.logError("Insight generation failed", error: error)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                     isGenerating = false
@@ -360,18 +391,18 @@ struct GlassInsightCard: View {
 
     private var categoryIcon: String {
         switch insight.category.lowercased() {
-        case "pattern recognition": return "waveform.path.ecg"
-        case "trigger analysis": return "exclamationmark.triangle"
-        case "regulation strategies": return "heart.text.square"
+        case "pattern": return "waveform.path.ecg"
+        case "suggestion": return "heart.text.square"
+        case "observation": return "eye"
         default: return "sparkles"
         }
     }
 
     private var categoryColor: Color {
         switch insight.category.lowercased() {
-        case "pattern recognition": return .purple
-        case "trigger analysis": return .orange
-        case "regulation strategies": return .green
+        case "pattern": return .purple
+        case "suggestion": return .green
+        case "observation": return .orange
         default: return .blue
         }
     }

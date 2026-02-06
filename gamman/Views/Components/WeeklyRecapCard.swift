@@ -10,6 +10,7 @@ import SwiftUI
 struct WeeklyRecapCard: View {
     var entriesThisWeek: Int
     var dominantState: NervousSystemState?
+    var showsStateIcons: Bool = true
     var onTap: () -> Void
 
     private var subtitle: String {
@@ -37,16 +38,17 @@ struct WeeklyRecapCard: View {
 
                 Spacer()
 
-                // Activity icons row
-                HStack(spacing: 8) {
-                    ForEach(NervousSystemState.allCases.prefix(3)) { state in
-                        ZStack {
-                            Circle()
-                                .fill(.white.opacity(0.2))
-                                .frame(width: 32, height: 32)
+                if showsStateIcons {
+                    HStack(spacing: 8) {
+                        ForEach(NervousSystemState.allCases.prefix(3)) { state in
+                            ZStack {
+                                Circle()
+                                    .fill(.white.opacity(0.2))
+                                    .frame(width: 32, height: 32)
 
-                            Text(state.emoji)
-                                .font(.callout)
+                                Text(state.emoji)
+                                    .font(.callout)
+                            }
                         }
                     }
                 }
@@ -146,6 +148,7 @@ struct InsightsRecapCard: View {
             WeeklyRecapCard(
                 entriesThisWeek: 0,
                 dominantState: nil,
+                showsStateIcons: false,
                 onTap: {}
             )
 

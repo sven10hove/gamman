@@ -86,6 +86,7 @@ struct JournalListView: View {
                 WeeklyRecapCard(
                     entriesThisWeek: entriesThisWeek,
                     dominantState: dominantStateThisWeek,
+                    showsStateIcons: false,
                     onTap: {
                         HapticService.impact(.light)
                         // Navigate to insights
@@ -242,7 +243,8 @@ struct QuickStateLogView: View {
     }
 
     private func saveQuickState() {
-        let content = quickNote.isEmpty ? "Quick state log: \(selectedState.displayName)" : quickNote
+        let trimmedNote = quickNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        let content = trimmedNote.isEmpty ? "Quick state log: \(selectedState.displayName)" : trimmedNote
         let entry = JournalEntry(
             content: content,
             nervousSystemState: selectedState,
@@ -251,6 +253,11 @@ struct QuickStateLogView: View {
             bodyLocations: []
         )
         modelContext.insert(entry)
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.database.logError("Failed to save quick state log", error: error)
+        }
         HapticService.success()
         dismiss()
     }

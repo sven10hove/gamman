@@ -52,6 +52,22 @@ For release/App Store builds, set production proxy URL in `Config/Release.xcconf
 Detailed setup: `AI_PROXY_SETUP.md`
 Vercel backend setup: `backend/README.md`
 
+## CI Quality Gates
+
+GitHub Actions workflow: `.github/workflows/ios-ci.yml`
+
+- `lint`: blocks common source-level issues (debug prints, forced try/cast, trailing whitespace)
+- `build-and-test`: runs iOS simulator build-for-testing and test-without-building
+
+Run the same gates locally:
+
+```bash
+./scripts/ci/lint.sh
+DESTINATION="$(./scripts/ci/detect_simulator_destination.sh)"
+./scripts/ci/build_for_testing.sh "$DESTINATION"
+./scripts/ci/test_without_building.sh "$DESTINATION"
+```
+
 ## Tech Stack
 
 - **UI**: SwiftUI

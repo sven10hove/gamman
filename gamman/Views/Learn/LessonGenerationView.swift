@@ -16,6 +16,8 @@ struct LessonGenerationView: View {
     @State private var prompt: String = ""
     @State private var navigateToLesson = false
     @State private var showingErrorAlert = false
+    @State private var shouldAutoNavigateToLesson = false
+    @State private var generationTask: Task<Void, Never>?
 
     var generatorService = LessonGeneratorService.shared
     var networkMonitor = NetworkMonitor.shared
@@ -52,7 +54,12 @@ struct LessonGenerationView: View {
             .glassNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    if !generatorService.isGenerating {
+                    if generatorService.isGenerating {
+                        Button("Stop") {
+                            stopGeneration()
+                        }
+                        .foregroundStyle(.red)
+                    } else {
                         Button("Cancel") {
                             dismiss()
                         }
@@ -66,12 +73,8 @@ struct LessonGenerationView: View {
                         } label: {
                             Text("Create")
                                 .fontWeight(.semibold)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(canGenerate ? LinearGradient.purpleBlueRecap : LinearGradient(colors: [.gray], startPoint: .leading, endPoint: .trailing))
-                                .clipShape(Capsule())
                         }
+                        .buttonStyle(LiquidPrimaryButtonStyle(cornerRadius: 999, horizontalPadding: 16, verticalPadding: 8))
                         .disabled(!canGenerate)
                     }
                 }
@@ -96,8 +99,25 @@ struct LessonGenerationView: View {
             }
             .onChange(of: generatorService.errors) { _, newErrors in
                 if !newErrors.isEmpty && !generatorService.isGenerating {
+                    if newErrors.count == 1, newErrors[0] == "Lesson generation was stopped" {
+                        return
+                    }
                     showingErrorAlert = true
                 }
+            }
+            .onChange(of: generatorService.isGenerating) { wasGenerating, isGenerating in
+                if !isGenerating {
+                    generationTask = nil
+                }
+
+                guard wasGenerating, !isGenerating else { return }
+                defer { shouldAutoNavigateToLesson = false }
+
+                guard shouldAutoNavigateToLesson else { return }
+                guard generatorService.currentLesson != nil else { return }
+                guard !navigateToLesson else { return }
+
+                navigateToLesson = true
             }
         }
     }
@@ -193,7 +213,11 @@ struct LessonGenerationView: View {
     private func startGeneration() {
         guard APIAccess.hasClaudeAccess else { return }
 
+        generationTask?.cancel()
+        generatorService.reset()
+
         HapticService.impact(.medium)
+        shouldAutoNavigateToLesson = true
 
         let config = AgentConfiguration(
             claudeAPIKey: APIAccess.claudeAPIKey ?? "",
@@ -203,13 +227,18 @@ struct LessonGenerationView: View {
             isConnected: networkMonitor.isConnected
         )
 
-        Task {
+        generationTask = Task {
             await generatorService.generateLesson(
                 prompt: prompt,
                 configuration: config,
                 modelContext: modelContext
             )
         }
+    }
+
+    private func stopGeneration() {
+        generatorService.cancelGeneration()
+        generationTask?.cancel()
     }
 }
 

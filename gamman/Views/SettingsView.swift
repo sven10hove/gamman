@@ -22,14 +22,8 @@ struct SettingsView: View {
     private static let polyvagalTheoryURL = URL(string: "https://www.dfrporges.org/polyvagal-theory")
     private static let claudeDocsURL = URL(string: "https://docs.anthropic.com")
 
-    var currentSettings: UserSettings {
-        if let existing = settings.first {
-            return existing
-        } else {
-            let newSettings = UserSettings()
-            modelContext.insert(newSettings)
-            return newSettings
-        }
+    private var currentSettings: UserSettings? {
+        settings.first
     }
 
     var body: some View {
@@ -119,62 +113,69 @@ struct SettingsView: View {
     // MARK: - Insight Preferences Section
 
     private var insightPreferencesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Auto-generate insights")
-                    .font(.subheadline)
+        Group {
+            if let currentSettings {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Auto-generate insights")
+                            .font(.subheadline)
 
-                Picker("", selection: Binding(
-                    get: { currentSettings.insightFrequency },
-                    set: { currentSettings.insightFrequency = $0 }
-                )) {
-                    Text("Daily").tag("daily")
-                    Text("Weekly").tag("weekly")
-                    Text("Manual only").tag("manual")
+                        Picker("", selection: Binding(
+                            get: { currentSettings.insightFrequency },
+                            set: { currentSettings.insightFrequency = $0 }
+                        )) {
+                            Text("Daily").tag("daily")
+                            Text("Weekly").tag("weekly")
+                            Text("Manual only").tag("manual")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Minimum entries")
+                                .font(.subheadline)
+                            Spacer()
+                            Text("\(currentSettings.minimumEntriesForInsight)")
+                                .font(.headline)
+                                .foregroundStyle(Color.appPurple)
+                        }
+
+                        Stepper(
+                            "",
+                            value: Binding(
+                                get: { currentSettings.minimumEntriesForInsight },
+                                set: { currentSettings.minimumEntriesForInsight = $0 }
+                            ),
+                            in: 3...20
+                        )
+                        .labelsHidden()
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Analysis timeframe")
+                                .font(.subheadline)
+                            Spacer()
+                            Text("\(currentSettings.preferredAnalysisTimeframe) days")
+                                .font(.headline)
+                                .foregroundStyle(Color.appPurple)
+                        }
+
+                        Stepper(
+                            "",
+                            value: Binding(
+                                get: { currentSettings.preferredAnalysisTimeframe },
+                                set: { currentSettings.preferredAnalysisTimeframe = $0 }
+                            ),
+                            in: 3...30
+                        )
+                        .labelsHidden()
+                    }
                 }
-                .pickerStyle(.segmented)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Minimum entries")
-                        .font(.subheadline)
-                    Spacer()
-                    Text("\(currentSettings.minimumEntriesForInsight)")
-                        .font(.headline)
-                        .foregroundStyle(Color.appPurple)
-                }
-
-                Stepper(
-                    "",
-                    value: Binding(
-                        get: { currentSettings.minimumEntriesForInsight },
-                        set: { currentSettings.minimumEntriesForInsight = $0 }
-                    ),
-                    in: 3...20
-                )
-                .labelsHidden()
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Analysis timeframe")
-                        .font(.subheadline)
-                    Spacer()
-                    Text("\(currentSettings.preferredAnalysisTimeframe) days")
-                        .font(.headline)
-                        .foregroundStyle(Color.appPurple)
-                }
-
-                Stepper(
-                    "",
-                    value: Binding(
-                        get: { currentSettings.preferredAnalysisTimeframe },
-                        set: { currentSettings.preferredAnalysisTimeframe = $0 }
-                    ),
-                    in: 3...30
-                )
-                .labelsHidden()
+            } else {
+                ProgressView("Loading preferences...")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -187,7 +188,7 @@ struct SettingsView: View {
             DataStatRow(label: "Insights Generated", value: "\(insights.count)", icon: "sparkles")
             DataStatRow(label: "Lessons Completed", value: "\(lessons.filter { $0.isCompleted }.count)/\(lessons.count)", icon: "checkmark.circle")
 
-            if let lastInsight = currentSettings.lastInsightGeneratedDate {
+            if let lastInsight = currentSettings?.lastInsightGeneratedDate {
                 DataStatRow(label: "Last Insight", value: lastInsight.formatted(date: .abbreviated, time: .shortened), icon: "clock")
             }
         }
@@ -260,9 +261,13 @@ struct SettingsView: View {
         }
 
         // Reset settings
-        currentSettings.lastInsightGeneratedDate = nil
+        currentSettings?.lastInsightGeneratedDate = nil
 
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.database.logError("Failed to reset all data", error: error)
+        }
         HapticService.impact(.heavy)
     }
 }

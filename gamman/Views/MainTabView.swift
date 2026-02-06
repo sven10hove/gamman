@@ -15,14 +15,8 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var showOnboarding = false
 
-    var currentSettings: UserSettings {
-        if let existing = settings.first {
-            return existing
-        } else {
-            let newSettings = UserSettings()
-            modelContext.insert(newSettings)
-            return newSettings
-        }
+    private var currentSettings: UserSettings? {
+        settings.first
     }
 
     var body: some View {
@@ -55,15 +49,32 @@ struct MainTabView: View {
             HapticService.selection()
         }
         .onAppear {
-            if !currentSettings.hasCompletedOnboarding {
+            if let currentSettings, !currentSettings.hasCompletedOnboarding, !showOnboarding {
+                showOnboarding = true
+            }
+        }
+        .onChange(of: settings) { _, newSettings in
+            guard let settings = newSettings.first else { return }
+            if !settings.hasCompletedOnboarding && !showOnboarding {
                 showOnboarding = true
             }
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView(isPresented: $showOnboarding)
                 .onDisappear {
-                    currentSettings.hasCompletedOnboarding = true
+                    markOnboardingComplete()
                 }
+        }
+    }
+
+    private func markOnboardingComplete() {
+        guard let currentSettings else { return }
+
+        currentSettings.hasCompletedOnboarding = true
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.database.logError("Failed to save onboarding completion", error: error)
         }
     }
 }

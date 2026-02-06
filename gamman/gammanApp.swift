@@ -88,6 +88,7 @@ struct ModernAppRootView: View {
                     .onAppear {
                         let context = container.mainContext
                         LessonContentProvider.shared.loadPrebuiltLessons(into: context)
+                        ensureDefaultSettings(in: context)
                     }
                     .modelContainer(container)
             } else {
@@ -110,6 +111,23 @@ struct ModernAppRootView: View {
         }
         // Restart the app (user needs to relaunch manually)
         exit(0)
+    }
+
+    private func ensureDefaultSettings(in context: ModelContext) {
+        let descriptor = FetchDescriptor<UserSettings>()
+        let settingsCount = (try? context.fetchCount(descriptor)) ?? 0
+
+        if settingsCount == 0 {
+            context.insert(UserSettings())
+            do {
+                try context.save()
+                AppLogger.database.info("Created default user settings")
+            } catch {
+                AppLogger.database.logError("Failed to create default user settings", error: error)
+            }
+        } else if settingsCount > 1 {
+            AppLogger.database.logWarning("Detected duplicate settings records: \(settingsCount)")
+        }
     }
 }
 #endif
